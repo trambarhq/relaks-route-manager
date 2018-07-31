@@ -1,0 +1,334 @@
+module.exports = function(React) {
+
+function RelaksRouteManager() {
+    this.state = {
+        url: null,
+        name: null,
+        params: {},
+        context: {},
+        history: [],
+    };
+}
+
+var prototype = Object.create(React.Component.prototype);
+
+prototype.constructor = RelaksRouteManager;
+
+prototype.render = function() {
+    return null;
+};
+
+prototype.triggerChangeEvent = function() {
+    if (this.props.onChange) {
+        this.props.onChange({
+            type: 'change',
+            target: this,
+        });
+    }
+};
+
+prototype.componentWillMount = function() {
+    var url = getLocationURL(location);
+    this.change(url, true);
+};
+
+prototype.componentWillUnmount = function() {
+
+};
+
+prototype.change = function(url, replace) {
+    var urlParts = parseURL(url);
+    var context = {};
+    this.rewrite('from', urlParts, context);
+    var params = {};
+    var name = this.match(urlParts, params, context);
+    if (name) {
+        var _this = this;
+        this.load(name, params, context).then(function() {
+            var state = {
+                name: name,
+                url: url,
+                params: params,
+                context: context,
+            };
+            _this.setState(state, function() {
+                _this.triggerChangeEvent();
+            });
+        });
+    }
+};
+
+prototype.find = function(name, params, newContext) {
+    var urlParts = this.fill(name, params);
+    var context = this.state.context;
+    if (newContext) {
+        var orgContext = context;
+        context = {};
+        for (var name in orgContext) {
+            context[name] = orgContext[name];
+        }
+        for (var name in newContext) {
+            context[name] = newContext[name];
+        }
+    }
+    this.rewrite('to', urlParts, context);
+    var url = composeURL(urlParts);
+    return url;
+};
+
+prototype.match = function(urlParts, params) {
+    var routes = this.props.routes;
+    for (var name in routes) {
+        var routeDef = routes[name];
+        var types = routeDef.parameters;
+        // if the path matches, then it's a match
+        // query and hash variables are treated as options
+        if (matchTemplate(urlParts.path, routeDef.path, types, params, true)) {
+            for (var queryVarName in routeDef.query) {
+                var queryVarTemplate = routeDef.query[queryVarName];
+                var queryVarValue = urlParts.query[queryVarName];
+                matchTemplate(queryVarValue, queryVarTemplate, types, params);
+            }
+            matchTemplate(urlParts.hash, routeDef.hash, types, params);
+            return name;
+        }
+    }
+    return null;
+};
+
+prototype.fill = function(name, params) {
+    var routeDef = this.props.routes[name];
+    if (!routeDef) {
+        throw new Error('No route by that name: ' + name);
+    }
+    var types = routeDef.parameters;
+    var path = fillTemplate(routeDef.path, types, params, true);
+    var hash = fillTemplate(routeDef.hash, types, params);
+    var query = {};
+    for (var queryVarName in routeDef.query) {
+        var queryVarTemplate = routeDef.query[queryVarName];
+        var queryVarValue = fillTemplate(queryVarTemplate, types, params);
+        query[queryVarName] = queryVarValue;
+    }
+    return { path, hash, query };
+};
+
+prototype.rewrite = function(urlParts, context) {
+    var rewrites = this.props.rewrites;
+    if (!(rewrites instanceof Array)) {
+        return;
+    }
+    rewrites.forEach(function(rewrite) {
+        return rewrite(urlParts, context);
+    });
+};
+
+prototype.load = function(name, params, context) {
+    var routeDef = this.props.routes[name];
+    if (routeDef && routeDef.load) {
+        return Promise.resolve(routeDef.load(params, context));
+    } else {
+        return Promise.resolve();
+    }
+};
+
+RelaksRouteManager.prototype = prototype;
+return RelaksRouteManager;
+};
+
+var variableRegExp = /\$\{\w+\}/g;
+
+var regExpCache = {};
+
+function getURLTemplateRegExp(template, sep) {
+    if (!template) {
+        return null;
+    }
+    var key = sep + ':' + template;
+    var re = regExpCache[key];
+    if (!re) {
+        var pattern = template.replace(variableRegExp, '([^' + sep + ']+)');
+        re = new RegExp('^' + pattern + '$');
+        regExpCache[key] = re;
+    }
+    return re;
+}
+
+var variableListCache = {};
+
+function getURLTemplateVariables(template) {
+    var list = variableListCache[template];
+    if (!list) {
+        var matches = template.match(variableRegExp);
+        list = [];
+        if (matches) {
+            for (var i = 0; i < matches.length; i++) {
+                var match = matches[i];
+                list.push(match.substr(2, match.length - 3));
+            }
+        }
+        variableListCache[template] = list;
+    }
+    return list;
+}
+
+function matchTemplate(urlPart, template, types, params, all) {
+    if (!urlPart || !template) {
+        return false;
+    }
+    if (typeof(template) === 'object') {
+        if (template.from) {
+            return template.from(urlPart, params);
+        }
+    } else if (typeof(template) === 'string') {
+        var re = getURLTemplateRegExp(template);
+        var matches = re.exec(urlPart);
+        if (!matches) {
+            return false;
+        }
+        var variables = getURLTemplateVariables(template);
+        var values = {};
+        for (var i = 0; i < variables.length; i++) {
+            var variable = variables[i];
+            var type = types[variable];
+            var value = castValue(matches[i + 1], type);
+            if (value !== undefined) {
+                values[variable] = value;
+            } else {
+                if (all) {
+                    return false;
+                }
+            }
+        }
+        for (var name in values) {
+            params[name] = values[name];
+        }
+        return true;
+    }
+    return false;
+}
+
+function fillTemplate(template, types, params, always) {
+    if (typeof(template) === 'object') {
+        if (template.to) {
+            return template.to(params);
+        }
+    } else if (typeof(template) === 'string') {
+        var variables = getURLTemplateVariables(template);
+        var urlPath = template;
+        for (var i = 0; i < variables.length; i++) {
+            var variable = variables[i];
+            var value = params[variable];
+            var type = types[variable];
+            if (value !== undefined || always) {
+                var string = stringifyValue(value, type);
+                urlPath = urlPath.replace('${' + variable + '}', string);
+            }
+        }
+        return urlPath;
+    }
+    return '';
+}
+
+function castValue(string, type) {
+    if (type === String) {
+        return string;
+    } else if (type === Number) {
+        var n = parseFloat(string);
+        if (n === n) {
+            return n;
+        }
+    } else if (type === Boolean) {
+        if (string.toLowerCase() === 't') {
+            return true;
+        } else if (string.toLowerCase() === 'f') {
+            return false;
+        } else {
+            var n = parseFloat(string);
+            if (n === n) {
+                return !!n;
+            } else {
+                return !!string;
+            }
+        }
+    } else if (type instanceof Object) {
+        if (type.from) {
+            return type.from(string);
+        }
+    }
+}
+
+function stringifyValue(value, type) {
+    if (type === String) {
+        return value;
+    } else if (type === Number) {
+        return String(value);
+    } else if (type === Boolean) {
+        return (value) ? 't' : 'f';
+    } else if (type instanceof Object) {
+        if (type.to) {
+            return type.to(value);
+        }
+    }
+}
+
+function parseURL(url) {
+    var path = url;
+    var hash = '';
+    var hashIndex = path.indexOf('#');
+    if (hashIndex !== -1) {
+        hash = path.substr(hashIndex + 1);
+        path = path.substr(0, hashIndex);
+    }
+    var query = {};
+    var queryIndex = path.indexOf('?');
+    if (queryIndex !== -1) {
+        query = parseQueryString(path.substr(queryIndex + 1));
+        path = path.substr(0, queryIndex);
+    }
+    return { path, query, hash };
+}
+
+function parseQueryString(queryString) {
+    var values = {};
+    if (queryString) {
+        var pairs = queryString.split('&');
+        for (var i = 0; i < pairs.length; i++) {
+            var parts = pairs[i].split('=');
+            var name = decodeURIComponent(parts[0]);
+            var value = decodeURIComponent(parts[1] || '');
+            value = value.replace(/\+/g, ' ');
+            values[name] = value;
+        }
+    }
+    return values;
+}
+
+function composeURL(urlParts) {
+    var url = urlParts.path;
+    var queryString = composeQueryString(urlParts.query);
+    if (queryString) {
+        url += '?' + queryString;
+    }
+    if (urlParts.hash) {
+        url += '#' + urlParts.hash;
+    }
+    return url;
+}
+
+function composeQueryString(query) {
+    var pairs = [];
+    for (var name in query) {
+        var value = query[name];
+        var parts = [
+            encodeURIComponent(name),
+            encodeURIComponent(value),
+        ];
+        pairs.push(parts.join('='));
+    }
+    return pairs.join('&');
+}
+
+function getLocationURL(location) {
+    return location.pathname + location.search + location.hash;
+}
