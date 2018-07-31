@@ -1,6 +1,9 @@
-module.exports = function(React) {
+module.exports = function(React, PropTypes) {
 
-function RelaksRouteManager() {
+var prototype = Object.create(React.Component.prototype);
+
+function ReactRouteManager() {
+    this.handlers = {};
     this.state = {
         url: null,
         name: null,
@@ -10,9 +13,26 @@ function RelaksRouteManager() {
     };
 }
 
-var prototype = Object.create(React.Component.prototype);
+prototype.constructor = ReactRouteManager;
+prototype.constructor.prototype = prototype;
 
-prototype.constructor = RelaksRouteManager;
+if (process.env.NODE_ENV !== 'production' && PropTypes) {
+    prototype.constructor.propTypes = {
+        trackLinks: PropTypes.bool,
+        trackLocation: PropTypes.bool,
+        baseURL: PropTypes.string,
+        onChange: PropTypes.func.isRequired,
+    }
+}
+if (process.env.INCLUDE_DISPLAY_NAME) {
+    prototype.constructor.displayName = 'ReactRouteManager';
+}
+
+prototype.constructor.defaultProps = {
+    trackLinks: true,
+    trackLocation: true,
+    baseURL: '/',
+};
 
 prototype.render = function() {
     return null;
@@ -28,12 +48,32 @@ prototype.triggerChangeEvent = function() {
 };
 
 prototype.componentWillMount = function() {
-    var url = getLocationURL(location);
+    if (this.props.trackLinks) {
+        this.setLinkHandler(true);
+    }
+    if (this.props.trackLocation) {
+        this.setLocationHandler(true);
+    }
+    var url = (location.protocol !== 'file:') ? getLocationURL(location) : '/';
     this.change(url, true);
 };
 
-prototype.componentWillUnmount = function() {
+prototype.componentWillReceiveProps = function(nextProps) {
+    if (this.props.trackLinks !== nextProps.trackLinks) {
+        this.setLinkHandler(nextProps.trackLinks);
+    }
+    if (this.props.trackLocation !== nextProps.trackLocation) {
+        this.setLocationHandler(nextProps.trackLocation);
+    }
+};
 
+prototype.componentWillUnmount = function() {
+    if (this.props.trackLinks) {
+        this.setLinkHandler(false);
+    }
+    if (this.props.trackLocation) {
+        this.setLocationHandler(false);
+    }
 };
 
 prototype.change = function(url, replace) {
@@ -110,7 +150,7 @@ prototype.fill = function(name, params) {
         var queryVarValue = fillTemplate(queryVarTemplate, types, params);
         query[queryVarName] = queryVarValue;
     }
-    return { path, hash, query };
+    return { path: path, hash: hash, query: query };
 };
 
 prototype.rewrite = function(urlParts, context) {
@@ -132,8 +172,61 @@ prototype.load = function(name, params, context) {
     }
 };
 
-RelaksRouteManager.prototype = prototype;
-return RelaksRouteManager;
+prototype.setLinkHandler = function(enabled) {
+    if (enabled) {
+        if (!this.handlers.handleLinkClick) {
+            this.handlers.handleLinkClick = this.handleLinkClick.bind(this);
+            document.addEventListener('click', this.handlers.handleLinkClick);
+        }
+    } else {
+        if (this.handlers.handleLinkClick) {
+            document.addEventListener('click', this.handlers.handleLinkClick);
+            this.handlers.handleLinkClick = undefined;
+        }
+    }
+};
+
+prototype.setLocationHandler = function(enabled) {
+    if (enabled) {
+        if (!this.handlers.handlePopState) {
+            this.handlers.handlePopState = this.handlePopState.bind(this);
+            window.addEventListener('popstate', this.handlers.handlePopState);
+        }
+    } else {
+        if (this.handlers.handlePopState) {
+            window.addEventListener('popstate', this.handlers.handlePopState);
+            this.handlers.handlePopState = undefined;
+        }
+    }
+};
+
+prototype.handleLinkClick = function(evt) {
+    if (evt.button === 0) {
+        var link = getLink(evt.target);
+        if (link && !link.target && !link.download) {
+            if (link.protocol === location.protocol && link.host === location.host) {
+                var path = link.pathname;
+                var baseURL = this.props.baseURL;
+                if (path.substr(0, baseURL.length) === baseURL) {
+                    evt.preventDefault();
+                    evt.stopPropagation();
+
+                    var url = getLocationURL(link);
+                    this.change(url);
+                }
+            }
+        }
+    }
+};
+
+prototype.handlePopState = function(evt) {
+    evt.preventDefault();
+
+    var url = getLocationURL(location);
+    this.change(url);
+};
+
+return prototype.constructor;
 };
 
 var variableRegExp = /\$\{\w+\}/g;
@@ -286,7 +379,7 @@ function parseURL(url) {
         query = parseQueryString(path.substr(queryIndex + 1));
         path = path.substr(0, queryIndex);
     }
-    return { path, query, hash };
+    return { path: path, query: query, hash: hash };
 }
 
 function parseQueryString(queryString) {
@@ -331,4 +424,11 @@ function composeQueryString(query) {
 
 function getLocationURL(location) {
     return location.pathname + location.search + location.hash;
+}
+
+function getLink(element) {
+    while (element && element.tagName !== 'A' && !element.href) {
+        element = element.parentNode;
+    }
+    return element;
 }
