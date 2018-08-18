@@ -20,7 +20,14 @@ if (process.env.NODE_ENV !== 'production' && PropTypes) {
     prototype.constructor.propTypes = {
         trackLinks: PropTypes.bool,
         trackLocation: PropTypes.bool,
-        baseURL: PropTypes.string,
+        useHashFallback: PropTypes.bool,
+        basePath: PropTypes.string,
+        routes: PropTypes.objectOf(PropTypes.shape({
+            path: PropTypes.string.isRequired,
+            parameters: PropTypes.object,
+            load: PropTypes.func,
+        })).isRequired,
+        rewrites: PropTypes.arrayOf(PropTypes.func),
         onChange: PropTypes.func.isRequired,
     }
 }
@@ -31,7 +38,8 @@ if (process.env.INCLUDE_DISPLAY_NAME) {
 prototype.constructor.defaultProps = {
     trackLinks: true,
     trackLocation: true,
-    baseURL: '/',
+    useHashFallback: false,
+    basePath: '',
 };
 
 prototype.render = function() {
@@ -54,7 +62,7 @@ prototype.componentWillMount = function() {
     if (this.props.trackLocation) {
         this.setLocationHandler(true);
     }
-    var url = (location.protocol !== 'file:') ? getLocationURL(location) : '/';
+    var url = this.getLocationURL(location);
     this.change(url, true);
 };
 
@@ -91,6 +99,7 @@ prototype.change = function(url, replace) {
                 params: params,
                 context: context,
             };
+            _this.setLocationURL(url, replace);
             _this.setState(state, function() {
                 _this.triggerChangeEvent();
             });
@@ -113,6 +122,9 @@ prototype.find = function(name, params, newContext) {
     }
     this.rewrite('to', urlParts, context);
     var url = composeURL(urlParts);
+    if (this.props.useHashFallback) {
+        url = `#${url}`;
+    }
     return url;
 };
 
@@ -158,17 +170,51 @@ prototype.rewrite = function(urlParts, context) {
     if (!(rewrites instanceof Array)) {
         return;
     }
+
     rewrites.forEach(function(rewrite) {
         return rewrite(urlParts, context);
     });
 };
 
 prototype.load = function(name, params, context) {
-    var routeDef = this.props.routes[name];
-    if (routeDef && routeDef.load) {
-        return Promise.resolve(routeDef.load(params, context));
+    try {
+        var result;
+        var routeDef = this.props.routes[name];
+        if (routeDef && routeDef.load) {
+            result = routeDef.load(params, context);
+        }
+        return Promise.resolve(result);
+    } catch (err) {
+        return Promise.reject(err);
+    }
+};
+
+prototype.getLocationURL = function(location) {
+    if (this.props.useHashFallback) {
+        var path = location.hash.substr(1);
+        return path || '/';
     } else {
-        return Promise.resolve();
+        return location.pathname + location.search + location.hash;
+    }
+};
+
+prototype.setLocationURL = function(url, replace) {
+    var currentURL = this.getLocationURL(location);
+    if (currentURL !== url) {
+        if (this.props.useHashFallback) {
+            var hash = `#${url}`;
+            if (replace) {
+                location.replace(hash)
+            } else {
+                location.href = hash;
+            }
+        } else {
+            if (replace) {
+                history.replaceState({}, '', url);
+            } else {
+                history.pushState({}, '', url);
+            }
+        }
     }
 };
 
@@ -203,18 +249,28 @@ prototype.setLocationHandler = function(enabled) {
 prototype.handleLinkClick = function(evt) {
     if (evt.button === 0) {
         var link = getLink(evt.target);
+        var match = false;
         if (link && !link.target && !link.download) {
-            if (link.protocol === location.protocol && link.host === location.host) {
-                var path = link.pathname;
-                var baseURL = this.props.baseURL;
-                if (path.substr(0, baseURL.length) === baseURL) {
-                    evt.preventDefault();
-                    evt.stopPropagation();
-
-                    var url = getLocationURL(link);
-                    this.change(url);
+            var { protocol, host, pathname, search } = link;
+            if (protocol === location.protocol && host === location.host) {
+                if (this.props.useHashFallback) {
+                    if (pathname === location.pathname && search === location.search) {
+                        match = true;
+                    }
+                } else {
+                    var basePath = this.props.basePath;
+                    if (pathname.substr(0, basePath.length) === basePath && pathname.charAt(basePath.length) === '/') {
+                        match = true;
+                    }
                 }
             }
+        }
+        if (match) {
+            evt.preventDefault();
+            evt.stopPropagation();
+
+            var url = this.getLocationURL(link);
+            this.change(url);
         }
     }
 };
@@ -222,7 +278,7 @@ prototype.handleLinkClick = function(evt) {
 prototype.handlePopState = function(evt) {
     evt.preventDefault();
 
-    var url = getLocationURL(location);
+    var url = this.getLocationURL(location);
     this.change(url);
 };
 
@@ -420,10 +476,6 @@ function composeQueryString(query) {
         pairs.push(parts.join('='));
     }
     return pairs.join('&');
-}
-
-function getLocationURL(location) {
-    return location.pathname + location.search + location.hash;
 }
 
 function getLink(element) {
