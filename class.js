@@ -226,7 +226,7 @@ prototype.setLinkHandler = function(enabled) {
         }
     } else {
         if (this.handlers.handleLinkClick) {
-            document.addEventListener('click', this.handlers.handleLinkClick);
+            document.removeEventListener('click', this.handlers.handleLinkClick);
             this.handlers.handleLinkClick = undefined;
         }
     }
@@ -240,7 +240,7 @@ prototype.setLocationHandler = function(enabled) {
         }
     } else {
         if (this.handlers.handlePopState) {
-            window.addEventListener('popstate', this.handlers.handlePopState);
+            window.removeEventListener('popstate', this.handlers.handlePopState);
             this.handlers.handlePopState = undefined;
         }
     }
