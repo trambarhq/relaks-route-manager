@@ -167,14 +167,33 @@ prototype.fill = function(name, params) {
     return { path: path, hash: hash, query: query };
 };
 
+/**
+ * Apply rewrites on URL parts
+ *
+ * @param  {String} direction
+ * @param  {Object} urlParts
+ * @param  {Object} context
+ */
 prototype.rewrite = function(direction, urlParts, context) {
     var rewrites = this.props.rewrites;
     if (!(rewrites instanceof Array)) {
         return;
     }
-    rewrites.forEach(function(rewrite) {
-        return rewrite(direction, urlParts, context);
-    });
+    if (direction === 'from') {
+        for (var i = 0; i < rewrites.length; i++) {
+            var f = rewrites[i];
+            if (f(direction, urlParts, context) === false) {
+                break;
+            }
+        }
+    } else if (direction === 'to') {
+        for (var i = rewrites.length - 1; i >= 0; i--) {
+            var f = rewrites[i];
+            if (f(direction, urlParts, context) === false) {
+                break;
+            }
+        }
+    }
 };
 
 /**

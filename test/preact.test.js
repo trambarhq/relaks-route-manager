@@ -84,4 +84,112 @@ describe('Preact test', function() {
             expect(urlParts.path).to.equal('/hello/world');
         })
     })
+    describe('#rewrite()', function() {
+        it ('should rewrite the URL', function() {
+            var f1 = function(direction, urlParts, context) {
+                if (direction === 'from') {
+                    var re = /^\/(https?)\/(.*?)(\/|$)/;
+                    var m = re.exec(urlParts.path);
+                    if (m) {
+                        context.protocol = m[1];
+                        context.host = m[2];
+                        urlParts.path = '/' + urlParts.path.substr(m[0].length);
+                    }
+                }
+            };
+            var props = {
+                routes: {},
+                rewrites: [ f1 ]
+            };
+            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
+            var component = wrapper.component();
+            var urlParts = {
+                path: '/https/example.net/users',
+                query: {},
+                hash: ''
+            };
+            var context = {};
+            component.rewrite('from', urlParts, context);
+            expect(urlParts.path).to.equal('/users');
+            expect(context.protocol).to.equal('https');
+            expect(context.host).to.equal('example.net');
+        })
+        it ('should rewrite the URL from other direction', function() {
+            var f1 = function(direction, urlParts, context) {
+                if (direction === 'to') {
+                    if (context.protocol && context.host) {
+                        urlParts.path = `/${context.protocol}/${context.host}${urlParts.path}`;
+                    }
+                }
+            };
+            var props = {
+                routes: {},
+                rewrites: [ f1 ]
+            };
+            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
+            var component = wrapper.component();
+            var urlParts = {
+                path: '/users',
+                query: {},
+                hash: ''
+            };
+            var context = {
+                protocol: 'https',
+                host: 'example.net'
+            };
+            component.rewrite('to', urlParts, context);
+            expect(urlParts.path).to.equal('/https/example.net/users');
+        })
+        it ('should stop rewriting when a function returns false', function() {
+            var f1 = function() {
+                canceled = true;
+                return false;
+            };
+            var f2 = function() {
+                canceled = false;
+            };
+            var canceled;
+            var props = {
+                routes: {},
+                rewrites: [ f1, f2 ]
+            };
+            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
+            var component = wrapper.component();
+            var urlParts = {
+                path: '/users',
+                query: {},
+                hash: ''
+            };
+            var context = {};
+            component.rewrite('from', urlParts, context);
+            expect(canceled).to.be.true;
+        })
+        it ('should rewrite in inverse order when direction is "to"', function() {
+            var f1 = function(direction) {
+                if (direction === 'to') {
+                    called.push(1);
+                }
+            };
+            var f2 = function(direction) {
+                if (direction === 'to') {
+                    called.push(2);
+                }
+            };
+            var called = [];
+            var props = {
+                routes: {},
+                rewrites: [ f1, f2 ]
+            };
+            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
+            var component = wrapper.component();
+            var urlParts = {
+                path: '/users',
+                query: {},
+                hash: ''
+            };
+            var context = {};
+            component.rewrite('to', urlParts, context);
+            expect(called).to.deep.equal([ 2, 1 ]);
+        })
+    })
 })
