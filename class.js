@@ -28,7 +28,7 @@ if (process.env.NODE_ENV !== 'production' && PropTypes) {
             load: PropTypes.func,
         })).isRequired,
         rewrites: PropTypes.arrayOf(PropTypes.func),
-        onChange: PropTypes.func.isRequired,
+        onChange: PropTypes.func,
     }
 }
 if (process.env.INCLUDE_DISPLAY_NAME) {
@@ -87,6 +87,7 @@ prototype.componentWillUnmount = function() {
 prototype.change = function(url, replace) {
     var urlParts = parseURL(url);
     var context = {};
+    this.rebase('to', urlParts);
     this.rewrite('from', urlParts, context);
     var params = {};
     var name = this.match(urlParts, params, context);
@@ -121,9 +122,10 @@ prototype.find = function(name, params, newContext) {
         }
     }
     this.rewrite('to', urlParts, context);
+    this.rebase('to', urlParts);
     var url = composeURL(urlParts);
     if (this.props.useHashFallback) {
-        url = `#${url}`;
+        url = '#' + url;
     }
     return url;
 };
@@ -165,15 +167,34 @@ prototype.fill = function(name, params) {
     return { path: path, hash: hash, query: query };
 };
 
-prototype.rewrite = function(urlParts, context) {
+prototype.rewrite = function(direction, urlParts, context) {
     var rewrites = this.props.rewrites;
     if (!(rewrites instanceof Array)) {
         return;
     }
-
     rewrites.forEach(function(rewrite) {
-        return rewrite(urlParts, context);
+        return rewrite(direction, urlParts, context);
     });
+};
+
+/**
+ * Add or remove basePath from a URL's path part
+ *
+ * @param  {String} direction
+ * @param  {Object} urlParts
+ */
+prototype.rebase = function(direction, urlParts) {
+    var basePath = this.props.basePath;
+    if (direction === 'from') {
+        var newPath = getRelativePath(basePath, urlParts.path);
+        if (newPath) {
+            urlParts.path = newPath;
+        }
+    } else if (direction === 'to') {
+        if (basePath) {
+            urlParts.path = basePath + urlParts.path;
+        }
+    }
 };
 
 prototype.load = function(name, params, context) {
@@ -202,7 +223,7 @@ prototype.setLocationURL = function(url, replace) {
     var currentURL = this.getLocationURL(location);
     if (currentURL !== url) {
         if (this.props.useHashFallback) {
-            var hash = `#${url}`;
+            var hash = '#' + url;
             if (replace) {
                 location.replace(hash)
             } else {
@@ -417,6 +438,19 @@ function stringifyValue(value, type) {
     } else if (type instanceof Object) {
         if (type.to) {
             return type.to(value);
+        }
+    }
+}
+
+function getRelativePath(basePath, path) {
+    if (!basePath) {
+        return path;
+    }
+    if (path.substr(0, basePath.length) === basePath) {
+        if (path.charAt(basePath.length) === '/') {
+            return path.substr(basePath.length);
+        } else if (path === basePath) {
+            return '/';
         }
     }
 }
