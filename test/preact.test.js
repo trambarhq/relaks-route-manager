@@ -706,10 +706,6 @@ describe('Preact test', function() {
             var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
             var component = wrapper.component();
             return component.change('/https/example.net/forum/story/5').then(() => {
-                expect(component.state.context).to.deep.equal({
-                    protocol: 'https',
-                    host: 'example.net'
-                });
                 var url = component.find('story-page', { id: 747 });
                 expect(url).to.equal('/https/example.net/forum/story/747');
             });
@@ -729,6 +725,28 @@ describe('Preact test', function() {
                 var url = component.find('stroy-page', { id: 747 });
             }).to.throw();
         })
+    })
+    describe('#back()', function() {
+        it ('should prepend base path before rewrite occurs', function() {
+            var props = {
+                routes: {
+                    'story-page': {
+                        path: '/story/${id}',
+                        params: { id: Number },
+                    }
+                },
+            };
+            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
+            var component = wrapper.component();
+            return component.change('/story/5').then(() => {
+                return component.change('/story/7').then(() => {
+                    return component.back().then(() => {
+                        expect(location.pathname).to.equal('/story/5');
+                    });
+                });
+            });
+        })
+
     })
 })
 

@@ -182,6 +182,39 @@ prototype.find = function(name, params, newContext) {
 };
 
 /**
+ * Go back to the previous route (if possible)
+ *
+ * @return {Promise}
+ */
+prototype.back = function() {
+    var history = this.state.history;
+    if (history.length <= 1) {
+        return Promise.reject(new Error('Cannot go beyond starting page'));
+    }
+    if (this.props.trackLocation) {
+        var _this = this;
+        return new Promise(function(resolve, reject) {
+            _this.backResolve = resolve;
+            _this.backReject = reject;
+            window.history.back();
+
+            // just in case the operation fails for some reason
+            setTimeout(function() {
+                var reject = _this.backReject;
+                if (reject) {
+                    _this.backResolve = undefined;
+                    _this.backReject = undefined;
+                    reject(new Error('Unable to navigate to previous page'));
+                }
+            }, 50);
+        });
+    } else {
+        var match = history[history.length - 2];
+        return this.apply(match, { pop: true });
+    }
+};
+
+/**
  * Match a URL with a route
  *
  * @param  {String} url
@@ -472,10 +505,24 @@ prototype.handleLinkClick = function(evt) {
 prototype.handlePopState = function(evt) {
     evt.preventDefault();
 
+    // resolve promise created in back()
+    var resolve = this.backResolve;
+    var reject = this.backReject;
+    this.backResolve = undefined;
+    this.backReject = undefined;
+
     var url = this.getLocationURL(location);
     var match = this.match(url);
     if (match) {
-        this.apply(match, { pop: true });
+        this.apply(match, { pop: true }).then(function() {
+            if (resolve) {
+                resolve();
+            }
+        }, function(err) {
+            if (reject) {
+                reject(err);
+            }
+        });
     }
 };
 
