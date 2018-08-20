@@ -192,6 +192,14 @@ prototype.match = function(url) {
     return null;
 };
 
+/**
+ * Fill a route templates with parameters
+ *
+ * @param  {String} name
+ * @param  {Object} params
+ *
+ * @return {Object}
+ */
 prototype.fill = function(name, params) {
     var routeDef = this.props.routes[name];
     if (!routeDef) {
@@ -204,7 +212,9 @@ prototype.fill = function(name, params) {
     for (var queryVarName in routeDef.query) {
         var queryVarTemplate = routeDef.query[queryVarName];
         var queryVarValue = fillTemplate(queryVarTemplate, types, params);
-        query[queryVarName] = queryVarValue;
+        if (queryVarValue !== undefined) {
+            query[queryVarName] = queryVarValue;
+        }
     }
     return { path: path, hash: hash, query: query };
 };
@@ -529,11 +539,12 @@ function fillTemplate(template, types, params, always) {
             if (value !== undefined || always) {
                 var string = stringifyValue(value, type);
                 urlPath = urlPath.replace('${' + variable + '}', string);
+            } else {
+                return;
             }
         }
         return urlPath;
     }
-    return '';
 }
 
 function castValue(string, type) {
