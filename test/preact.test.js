@@ -2,7 +2,7 @@ import Promise from 'bluebird';
 import { expect } from 'chai';
 import PreactRenderSpy from 'preact-render-spy';
 import { h } from 'preact'
-import RelaksRouteManager from '../index';
+import RelaksRouteManager from '../preact';
 
 /** @jsx h */
 
@@ -416,6 +416,137 @@ describe('Preact test', function() {
             });
             expect(urlParts).to.have.property('path').that.equals('/news/');
             expect(urlParts).to.have.property('hash').that.equals('R444');
+        })
+    })
+    describe('#find()', function() {
+        it ('should generate a URL with query variables', function() {
+            var props = {
+                routes: {
+                    'search-page': {
+                        path: '/search',
+                        params: { keywords: WordList, max: Number },
+                        query: {
+                            q: '${keywords}',
+                            m: '${max}',
+                        }
+                    }
+                },
+            };
+            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
+            var component = wrapper.component();
+            var url = component.find('search-page', {
+                keywords: [ 'cat', 'dog' ],
+                max: 8
+            });
+            expect(url).to.equal('/search?q=cat%20dog&m=8');
+        })
+        it ('should generate a URL with hash', function() {
+            var props = {
+                routes: {
+                    'news-page': {
+                        path: '/news/',
+                        params: { storyID: Number, reactionID: Number },
+                        hash: [ 'S${storyID}', 'R${reactionID}' ],
+                    }
+                },
+            };
+            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
+            var component = wrapper.component();
+            var url = component.find('news-page', {
+                storyID: 222,
+                reactionID: 444,
+            });
+            expect(url).to.equal('/news/#S222R444');
+        })
+        it ('should prepend path with base path', function() {
+            var props = {
+                routes: {
+                    'story-page': {
+                        path: '/story/${id}',
+                        params: { id: Number },
+                    }
+                },
+                basePath: '/forum'
+            };
+            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
+            var component = wrapper.component();
+            var url = component.find('story-page', { id: 747 });
+            expect(url).to.equal('/forum/story/747');
+        })
+        it ('should apply context created by rewrite from call to change()', function() {
+            var r1 = {
+                from: function(urlParts, context) {
+                    var re = /^\/(https?)\/(.*?)(\/|$)/;
+                    var m = re.exec(urlParts.path);
+                    if (m) {
+                        context.protocol = m[1];
+                        context.host = m[2];
+                        urlParts.path = '/' + urlParts.path.substr(m[0].length);
+                    }
+                },
+                to: function(urlParts, context) {
+                    if (context.protocol && context.host) {
+                        urlParts.path = `/${context.protocol}/${context.host}${urlParts.path}`;
+                    }
+                },
+            };
+            var props = {
+                routes: {
+                    'story-page': {
+                        path: '/story/${id}',
+                        params: { id: Number },
+                    }
+                },
+                rewrites: [ r1 ]
+            };
+            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
+            var component = wrapper.component();
+            return component.change('/https/example.net/story/5').then(() => {
+                expect(component.state.context).to.deep.equal({
+                    protocol: 'https',
+                    host: 'example.net'
+                });
+                var url = component.find('story-page', { id: 747 });
+                expect(url).to.equal('/https/example.net/story/747');
+            });
+        })
+        it ('should prepend base path before rewrite occurs', function() {
+            var r1 = {
+                from: function(urlParts, context) {
+                    var re = /^\/(https?)\/(.*?)(\/|$)/;
+                    var m = re.exec(urlParts.path);
+                    if (m) {
+                        context.protocol = m[1];
+                        context.host = m[2];
+                        urlParts.path = '/' + urlParts.path.substr(m[0].length);
+                    }
+                },
+                to: function(urlParts, context) {
+                    if (context.protocol && context.host) {
+                        urlParts.path = `/${context.protocol}/${context.host}${urlParts.path}`;
+                    }
+                },
+            };
+            var props = {
+                routes: {
+                    'story-page': {
+                        path: '/story/${id}',
+                        params: { id: Number },
+                    }
+                },
+                rewrites: [ r1 ],
+                basePath: '/forum'
+            };
+            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
+            var component = wrapper.component();
+            return component.change('/https/example.net/forum/story/5').then(() => {
+                expect(component.state.context).to.deep.equal({
+                    protocol: 'https',
+                    host: 'example.net'
+                });
+                var url = component.find('story-page', { id: 747 });
+                expect(url).to.equal('/https/example.net/forum/story/747');
+            });
         })
     })
 })

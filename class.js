@@ -122,7 +122,7 @@ prototype.change = function(url, replace) {
  */
 prototype.apply = function(match) {
     var _this = this;
-    this.load(match).then(function() {
+    return this.load(match).then(function() {
         _this.setState(match, function() {
             _this.triggerChangeEvent();
         });
