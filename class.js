@@ -95,7 +95,7 @@ prototype.componentWillUnmount = function() {
 };
 
 /**
- * Change the route
+ * Change the route to what the given URL points to
  *
  * @param  {String} url
  * @param  {Boolean|undefined} replace
@@ -114,6 +114,40 @@ prototype.change = function(url, replace) {
 };
 
 /**
+ * Change the route to the one given, adding to history
+ *
+ * @param  {String} name
+ * @param  {Object} parameters
+ *
+ * @return {Promise}
+ */
+prototype.push = function(name, parameters) {
+    try {
+        var url = this.find(name, parameters);
+        return this.change(url, false);
+    } catch (err) {
+        return Promise.reject(err);
+    }
+};
+
+/**
+ * Replace the current route with the one given
+ *
+ * @param  {String} name
+ * @param  {Object} parameters
+ *
+ * @return {Promise}
+ */
+prototype.replace = function(name, parameters) {
+    try {
+        var url = this.find(name, parameters);
+        return this.change(url, true);
+    } catch (err) {
+        return Promise.reject(err);
+    }
+};
+
+/**
  * Load necessary module(s) for a route, set the state, and trigger change event
  *
  * @param  {Object} match
@@ -123,8 +157,11 @@ prototype.change = function(url, replace) {
 prototype.apply = function(match) {
     var _this = this;
     return this.load(match).then(function() {
-        _this.setState(match, function() {
-            _this.triggerChangeEvent();
+        return new Promise(function(resolve, reject) {
+            _this.setState(match, function() {
+                _this.triggerChangeEvent();
+                resolve();
+            });
         });
     });
 };
