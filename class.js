@@ -16,19 +16,24 @@ function ReactRouteManager() {
 prototype.constructor = ReactRouteManager;
 prototype.constructor.prototype = prototype;
 
-if (process.env.NODE_ENV !== 'production' && PropTypes) {
-    prototype.constructor.propTypes = {
-        trackLinks: PropTypes.bool,
-        trackLocation: PropTypes.bool,
-        useHashFallback: PropTypes.bool,
-        basePath: PropTypes.string,
-        routes: PropTypes.objectOf(PropTypes.shape({
-            path: PropTypes.string.isRequired,
-            params: PropTypes.object,
-            load: PropTypes.func,
-        })).isRequired,
-        rewrites: PropTypes.arrayOf(PropTypes.func),
-        onChange: PropTypes.func,
+if (process.env.NODE_ENV !== 'production') {
+    try {
+        let propTypes = require('prop-types');
+
+        prototype.constructor.propTypes = {
+            trackLinks: PropTypes.bool,
+            trackLocation: PropTypes.bool,
+            useHashFallback: PropTypes.bool,
+            basePath: PropTypes.string,
+            routes: PropTypes.objectOf(PropTypes.shape({
+                path: PropTypes.string.isRequired,
+                params: PropTypes.object,
+                load: PropTypes.func,
+            })).isRequired,
+            rewrites: PropTypes.arrayOf(PropTypes.func),
+            onChange: PropTypes.func,
+        }
+    } catch (err) {
     }
 }
 if (process.env.INCLUDE_DISPLAY_NAME) {
@@ -63,15 +68,13 @@ prototype.componentWillMount = function() {
         this.setLocationHandler(true);
     }
     var url = this.getLocationURL(location);
-    this.change(url, true);
+    this.change(url, { replace: true });
 };
 
 /**
  * Attach/remove handlers on prop changes
  *
  * @param  {Object} nextProps
- *
- * @return {[type]}
  */
 prototype.componentWillReceiveProps = function(nextProps) {
     if (this.props.trackLinks !== nextProps.trackLinks) {
@@ -98,12 +101,13 @@ prototype.componentWillUnmount = function() {
  * Change the route to what the given URL points to
  *
  * @param  {String} url
- * @param  {Boolean|undefined} replace
+ * @param  {Object|undefined} options
  *
  * @return {Promise}
  */
-prototype.change = function(url, replace) {
+prototype.change = function(url, options) {
     var match = this.match(url);
+    var replace = (options) ? options.replace || false : false;
     if (match) {
         this.setLocationURL(url, replace);
         return this.apply(match);
@@ -117,14 +121,14 @@ prototype.change = function(url, replace) {
  * Change the route to the one given, adding to history
  *
  * @param  {String} name
- * @param  {Object} parameters
+ * @param  {Object} params
  *
  * @return {Promise}
  */
-prototype.push = function(name, parameters) {
+prototype.push = function(name, params) {
     try {
-        var url = this.find(name, parameters);
-        return this.change(url, false);
+        var url = this.find(name, params);
+        return this.change(url);
     } catch (err) {
         return Promise.reject(err);
     }
@@ -134,14 +138,14 @@ prototype.push = function(name, parameters) {
  * Replace the current route with the one given
  *
  * @param  {String} name
- * @param  {Object} parameters
+ * @param  {Object} params
  *
  * @return {Promise}
  */
-prototype.replace = function(name, parameters) {
+prototype.replace = function(name, params) {
     try {
-        var url = this.find(name, parameters);
-        return this.change(url, true);
+        var url = this.find(name, params);
+        return this.change(url, { replace: true });
     } catch (err) {
         return Promise.reject(err);
     }
@@ -197,6 +201,13 @@ prototype.find = function(name, params, newContext) {
     return url;
 };
 
+/**
+ * Match a URL with a route
+ *
+ * @param  {String} url
+ *
+ * @return {Object|null}
+ */
 prototype.match = function(url) {
     // perform rewrites
     var urlParts = parseURL(url);
@@ -425,6 +436,7 @@ prototype.handleLinkClick = function(evt) {
                 if (match) {
                     evt.preventDefault();
                     evt.stopPropagation();
+                    this.setLocationURL(url);
                     this.apply(match);
                 }
             }
