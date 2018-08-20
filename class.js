@@ -151,43 +151,6 @@ prototype.replace = function(name, params) {
 };
 
 /**
- * Load necessary module(s) for a route, set the state, and trigger change event
- *
- * @param  {Object} match
- * @param  {Object} options
- *
- * @return {Promise}
- */
-prototype.apply = function(match, options) {
-    var replace = options.replace || false;
-    var pop = options.pop || false;
-    var _this = this;
-    return this.load(match).then(function() {
-        return new Promise(function(resolve, reject) {
-            var history = _this.state.history.slice();
-            if (pop) {
-                history.pop();
-            } else if (replace && history.length > 0) {
-                history[history.length - 1] = match;
-            } else {
-                history.push(match);
-            }
-            var state = {
-                url: match.url,
-                name: match.name,
-                params: match.params,
-                context: match.context,
-                history: history,
-            };
-            _this.setState(state, function() {
-                _this.triggerChangeEvent();
-                resolve();
-            });
-        });
-    });
-};
-
-/**
  * Get a URL for a route for the parameters given
  *
  * @param  {String} name
@@ -255,6 +218,43 @@ prototype.match = function(url) {
         }
     }
     return null;
+};
+
+/**
+ * Load necessary module(s) for a route, set the state, and trigger change event
+ *
+ * @param  {Object} match
+ * @param  {Object} options
+ *
+ * @return {Promise}
+ */
+prototype.apply = function(match, options) {
+    var replace = options.replace || false;
+    var pop = options.pop || false;
+    var _this = this;
+    return this.load(match).then(function() {
+        return new Promise(function(resolve, reject) {
+            var history = _this.state.history.slice();
+            if (pop) {
+                history.pop();
+            } else if (replace && history.length > 0) {
+                history[history.length - 1] = match;
+            } else {
+                history.push(match);
+            }
+            var state = {
+                url: match.url,
+                name: match.name,
+                params: match.params,
+                context: match.context,
+                history: history,
+            };
+            _this.setState(state, function() {
+                _this.triggerChangeEvent();
+                resolve();
+            });
+        });
+    });
 };
 
 /**
