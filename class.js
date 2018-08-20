@@ -107,10 +107,9 @@ prototype.componentWillUnmount = function() {
  */
 prototype.change = function(url, options) {
     var match = this.match(url);
-    var replace = (options) ? options.replace || false : false;
     if (match) {
-        this.setLocationURL(url, replace);
-        return this.apply(match);
+        this.setLocationURL(url, options || {});
+        return this.apply(match, options || {});
     } else {
         var err = new Error('No route');
         return Promise.reject(err);
@@ -155,14 +154,32 @@ prototype.replace = function(name, params) {
  * Load necessary module(s) for a route, set the state, and trigger change event
  *
  * @param  {Object} match
+ * @param  {Object} options
  *
  * @return {Promise}
  */
-prototype.apply = function(match) {
+prototype.apply = function(match, options) {
+    var replace = options.replace || false;
+    var pop = options.pop || false;
     var _this = this;
     return this.load(match).then(function() {
         return new Promise(function(resolve, reject) {
-            _this.setState(match, function() {
+            var history = _this.state.history.slice();
+            if (pop) {
+                history.pop();
+            } else if (replace && history.length > 0) {
+                history[history.length - 1] = match;
+            } else {
+                history.push(match);
+            }
+            var state = {
+                url: match.url,
+                name: match.name,
+                params: match.params,
+                context: match.context,
+                history: history,
+            };
+            _this.setState(state, function() {
                 _this.triggerChangeEvent();
                 resolve();
             });
@@ -372,7 +389,8 @@ prototype.getLocationURL = function(location) {
     }
 };
 
-prototype.setLocationURL = function(url, replace) {
+prototype.setLocationURL = function(url, options) {
+    var replace = options.replace || false;
     var currentURL = this.getLocationURL(location);
     if (currentURL !== url) {
         if (this.props.useHashFallback) {
@@ -436,8 +454,10 @@ prototype.handleLinkClick = function(evt) {
                 if (match) {
                     evt.preventDefault();
                     evt.stopPropagation();
-                    this.setLocationURL(url);
-                    this.apply(match);
+
+                    var options = { replace: false };
+                    this.setLocationURL(url, options);
+                    this.apply(match, options);
                 }
             }
         }
@@ -455,7 +475,7 @@ prototype.handlePopState = function(evt) {
     var url = this.getLocationURL(location);
     var match = this.match(url);
     if (match) {
-        this.apply(match);
+        this.apply(match, { pop: true });
     }
 };
 
