@@ -24,7 +24,7 @@ if (process.env.NODE_ENV !== 'production' && PropTypes) {
         basePath: PropTypes.string,
         routes: PropTypes.objectOf(PropTypes.shape({
             path: PropTypes.string.isRequired,
-            parameters: PropTypes.object,
+            params: PropTypes.object,
             load: PropTypes.func,
         })).isRequired,
         rewrites: PropTypes.arrayOf(PropTypes.func),
@@ -66,6 +66,13 @@ prototype.componentWillMount = function() {
     this.change(url, true);
 };
 
+/**
+ * Attach/remove handlers on prop changes
+ *
+ * @param  {Object} nextProps
+ *
+ * @return {[type]}
+ */
 prototype.componentWillReceiveProps = function(nextProps) {
     if (this.props.trackLinks !== nextProps.trackLinks) {
         this.setLinkHandler(nextProps.trackLinks);
@@ -75,6 +82,9 @@ prototype.componentWillReceiveProps = function(nextProps) {
     }
 };
 
+/**
+ * Remove handlers on unmount
+ */
 prototype.componentWillUnmount = function() {
     if (this.props.trackLinks) {
         this.setLinkHandler(false);
@@ -84,30 +94,50 @@ prototype.componentWillUnmount = function() {
     }
 };
 
+/**
+ * Change the route
+ *
+ * @param  {String} url
+ * @param  {Boolean|undefined} replace
+ *
+ * @return {Promise}
+ */
 prototype.change = function(url, replace) {
-    var urlParts = parseURL(url);
-    var context = {};
-    this.rebase('to', urlParts);
-    this.rewrite('from', urlParts, context);
-    var params = {};
-    var name = this.match(urlParts, params, context);
-    if (name) {
-        var _this = this;
-        this.load(name, params, context).then(function() {
-            var state = {
-                name: name,
-                url: url,
-                params: params,
-                context: context,
-            };
-            _this.setLocationURL(url, replace);
-            _this.setState(state, function() {
-                _this.triggerChangeEvent();
-            });
-        });
+    var match = this.match(url);
+    if (match) {
+        this.setLocationURL(url, replace);
+        return this.apply(match);
+    } else {
+        var err = new Error('No route');
+        return Promise.reject(err);
     }
 };
 
+/**
+ * Load necessary module(s) for a route, set the state, and trigger change event
+ *
+ * @param  {Object} match
+ *
+ * @return {Promise}
+ */
+prototype.apply = function(match) {
+    var _this = this;
+    this.load(match).then(function() {
+        _this.setState(match, function() {
+            _this.triggerChangeEvent();
+        });
+    });
+};
+
+/**
+ * Get a URL for a route for the parameters given
+ *
+ * @param  {String} name
+ * @param  {Object} params
+ * @param  {Object|undefined} newContext
+ *
+ * @return {String}
+ */
 prototype.find = function(name, params, newContext) {
     var urlParts = this.fill(name, params);
     var context = this.state.context;
@@ -121,8 +151,8 @@ prototype.find = function(name, params, newContext) {
             context[name] = newContext[name];
         }
     }
-    this.rewrite('to', urlParts, context);
     this.rebase('to', urlParts);
+    this.rewrite('to', urlParts, context);
     var url = composeURL(urlParts);
     if (this.props.useHashFallback) {
         url = '#' + url;
@@ -130,11 +160,23 @@ prototype.find = function(name, params, newContext) {
     return url;
 };
 
-prototype.match = function(urlParts, params) {
+prototype.match = function(url) {
+    // perform rewrites
+    var urlParts = parseURL(url);
+    var context = {};
+    this.rewrite('from', urlParts, context);
+
+    // remove base path
+    if (!this.rebase('from', urlParts)) {
+        return null;
+    }
+
+    // look for matching route
+    var params = {};
     var routes = this.props.routes;
     for (var name in routes) {
         var routeDef = routes[name];
-        var types = routeDef.parameters;
+        var types = routeDef.params;
         // if the path matches, then it's a match
         // query and hash variables are treated as options
         if (matchTemplate(urlParts.path, routeDef.path, types, params, true)) {
@@ -144,7 +186,7 @@ prototype.match = function(urlParts, params) {
                 matchTemplate(queryVarValue, queryVarTemplate, types, params);
             }
             matchTemplate(urlParts.hash, routeDef.hash, types, params);
-            return name;
+            return { url: url, name: name, params: params, context: context };
         }
     }
     return null;
@@ -155,7 +197,7 @@ prototype.fill = function(name, params) {
     if (!routeDef) {
         throw new Error('No route by that name: ' + name);
     }
-    var types = routeDef.parameters;
+    var types = routeDef.params;
     var path = fillTemplate(routeDef.path, types, params, true);
     var hash = fillTemplate(routeDef.hash, types, params);
     var query = {};
@@ -181,26 +223,34 @@ prototype.rewrite = function(direction, urlParts, context) {
     }
     if (direction === 'from') {
         for (var i = 0; i < rewrites.length; i++) {
-            var f = rewrites[i];
-            if (f(direction, urlParts, context) === false) {
-                break;
+            var r = rewrites[i];
+            var f = (r) ? r.from : null;
+            if (f) {
+                if (f(urlParts, context) === false) {
+                    break;
+                }
             }
         }
     } else if (direction === 'to') {
         for (var i = rewrites.length - 1; i >= 0; i--) {
-            var f = rewrites[i];
-            if (f(direction, urlParts, context) === false) {
-                break;
+            var r = rewrites[i];
+            var f = (r) ? r.to : null;
+            if (f) {
+                if (f(urlParts, context) === false) {
+                    break;
+                }
             }
         }
     }
 };
 
 /**
- * Add or remove basePath from a URL's path part
+ * Add or remove basePath from a URL's path part. Return false if it can't be done.
  *
  * @param  {String} direction
  * @param  {Object} urlParts
+ *
+ * @return {Boolean}
  */
 prototype.rebase = function(direction, urlParts) {
     var basePath = this.props.basePath;
@@ -208,20 +258,23 @@ prototype.rebase = function(direction, urlParts) {
         var newPath = getRelativePath(basePath, urlParts.path);
         if (newPath) {
             urlParts.path = newPath;
+            return true;
         }
     } else if (direction === 'to') {
         if (basePath) {
             urlParts.path = basePath + urlParts.path;
         }
+        return true;
     }
+    return false;
 };
 
-prototype.load = function(name, params, context) {
+prototype.load = function(match) {
     try {
         var result;
-        var routeDef = this.props.routes[name];
+        var routeDef = this.props.routes[match.name];
         if (routeDef && routeDef.load) {
-            result = routeDef.load(params, context);
+            result = routeDef.load(match.params, match.context);
         }
         return Promise.resolve(result);
     } catch (err) {
@@ -229,7 +282,30 @@ prototype.load = function(name, params, context) {
     }
 };
 
+/**
+ * Return a relative URL or empty string (if link is pointing to an external page)
+ *
+ * @param  {Location|HTMLAnchorElement} location
+ *
+ * @return {String}
+ */
 prototype.getLocationURL = function(location) {
+    var documentLocation = window.location;
+    if (location !== documentLocation) {
+        if (location.protocol !== documentLocation.protocol) {
+            return '';
+        } else if (location.host !== documentLocation.host) {
+            return '';
+        }
+        if (this.props.useHashFallback) {
+            if (location.pathname !== documentLocation.pathname) {
+                return '';
+            }
+            if (location.search === documentLocation.search) {
+                return '';
+            }
+        }
+    }
     if (this.props.useHashFallback) {
         var path = location.hash.substr(1);
         return path || '/';
@@ -262,11 +338,11 @@ prototype.setLinkHandler = function(enabled) {
     if (enabled) {
         if (!this.handlers.handleLinkClick) {
             this.handlers.handleLinkClick = this.handleLinkClick.bind(this);
-            document.addEventListener('click', this.handlers.handleLinkClick);
+            window.addEventListener('click', this.handlers.handleLinkClick);
         }
     } else {
         if (this.handlers.handleLinkClick) {
-            document.removeEventListener('click', this.handlers.handleLinkClick);
+            window.removeEventListener('click', this.handlers.handleLinkClick);
             this.handlers.handleLinkClick = undefined;
         }
     }
@@ -286,91 +362,122 @@ prototype.setLocationHandler = function(enabled) {
     }
 };
 
+/**
+ * Called when the user clicks on the page
+ *
+ * @param  {Event} evt
+ */
 prototype.handleLinkClick = function(evt) {
     if (evt.button === 0) {
         var link = getLink(evt.target);
         var match = false;
         if (link && !link.target && !link.download) {
-            var { protocol, host, pathname, search } = link;
-            if (protocol === location.protocol && host === location.host) {
-                if (this.props.useHashFallback) {
-                    if (pathname === location.pathname && search === location.search) {
-                        match = true;
-                    }
-                } else {
-                    var basePath = this.props.basePath;
-                    if (pathname.substr(0, basePath.length) === basePath && pathname.charAt(basePath.length) === '/') {
-                        match = true;
-                    }
+            var url = this.getLocationURL(link);
+            if (url) {
+                var match = this.match(url);
+                if (match) {
+                    evt.preventDefault();
+                    evt.stopPropagation();
+                    this.apply(match);
                 }
             }
-        }
-        if (match) {
-            evt.preventDefault();
-            evt.stopPropagation();
-
-            var url = this.getLocationURL(link);
-            this.change(url);
         }
     }
 };
 
+/**
+ * Called when the user press the back button
+ *
+ * @param  {Event} evt
+ */
 prototype.handlePopState = function(evt) {
     evt.preventDefault();
 
     var url = this.getLocationURL(location);
-    this.change(url);
+    var match = this.match(url);
+    if (match) {
+        this.apply(match);
+    }
 };
 
 return prototype.constructor;
 };
 
 var variableRegExp = /\$\{\w+\}/g;
-
 var regExpCache = {};
 
-function getURLTemplateRegExp(template, sep) {
+function getURLTemplateRegExp(template, types, isPath) {
     if (!template) {
         return null;
     }
-    var key = sep + ':' + template;
-    var re = regExpCache[key];
+    var pattern = template.replace(variableRegExp, function(match) {
+        var variable = match.substr(2, match.length - 3)
+        var variableType = types[variable];
+        var variablePattern;
+        if (variableType === Number || variableType === Boolean) {
+            variablePattern = '[\\d\\.]+';
+        } else if (typeof(variableType) === 'object') {
+            variablePattern = variableType.pattern;
+        }
+        if (!variablePattern) {
+            if (isPath) {
+                variablePattern = '[^/]+'
+            } else {
+                variablePattern = '.+';
+            }
+        }
+        return '(' + variablePattern + ')';
+    });
+    if (isPath) {
+        var lc = pattern.charAt(pattern - 1);
+        if (lc === '/') {
+            pattern += '?';
+        } else {
+            pattern += '/?';
+        }
+        pattern = '^' + pattern + '$';
+    }
+    var re = regExpCache[pattern];
     if (!re) {
-        var pattern = template.replace(variableRegExp, '([^' + sep + ']+)');
-        re = new RegExp('^' + pattern + '$');
-        regExpCache[key] = re;
+        re = regExpCache[pattern] = new RegExp(pattern);
     }
     return re;
 }
 
-var variableListCache = {};
-
 function getURLTemplateVariables(template) {
-    var list = variableListCache[template];
-    if (!list) {
-        var matches = template.match(variableRegExp);
-        list = [];
-        if (matches) {
-            for (var i = 0; i < matches.length; i++) {
-                var match = matches[i];
-                list.push(match.substr(2, match.length - 3));
-            }
+    var matches = template.match(variableRegExp);
+    var list = [];
+    if (matches) {
+        for (var i = 0; i < matches.length; i++) {
+            var match = matches[i];
+            list.push(match.substr(2, match.length - 3));
         }
-        variableListCache[template] = list;
     }
     return list;
 }
 
-function matchTemplate(urlPart, template, types, params, all) {
+function matchTemplate(urlPart, template, types, params, isPath) {
     if (!urlPart || !template) {
         return false;
     }
-    if (typeof(template) === 'object') {
+    if (template instanceof Array) {
+        var match = false;
+        for (var i = 0; i < template.length; i++) {
+            var t = template[i];
+            if (matchTemplate(urlPart, t, types, params, isPath)) {
+                match = true;
+                if (isPath) {
+                    break;
+                }
+            }
+        }
+        return match;
+    } else if (typeof(template) === 'object') {
         if (template.from) {
             return template.from(urlPart, params);
         }
     } else if (typeof(template) === 'string') {
-        var re = getURLTemplateRegExp(template);
+        var re = getURLTemplateRegExp(template, types, isPath);
         var matches = re.exec(urlPart);
         if (!matches) {
             return false;
@@ -384,7 +491,7 @@ function matchTemplate(urlPart, template, types, params, all) {
             if (value !== undefined) {
                 values[variable] = value;
             } else {
-                if (all) {
+                if (isPath) {
                     return false;
                 }
             }
@@ -398,7 +505,17 @@ function matchTemplate(urlPart, template, types, params, all) {
 }
 
 function fillTemplate(template, types, params, always) {
-    if (typeof(template) === 'object') {
+    if (template instanceof Array) {
+        var tokens = [];
+        for (var i = 0; i < template.length; i++) {
+            var t = template[i];
+            var s = fillTemplate(t, types, params, always);
+            if (s) {
+                tokens.push(s);
+            }
+        }
+        return tokens.join('');
+    } else if (typeof(template) === 'object') {
         if (template.to) {
             return template.to(params);
         }
@@ -428,17 +545,11 @@ function castValue(string, type) {
             return n;
         }
     } else if (type === Boolean) {
-        if (string.toLowerCase() === 't') {
-            return true;
-        } else if (string.toLowerCase() === 'f') {
-            return false;
+        var n = parseFloat(string);
+        if (n === n) {
+            return !!n;
         } else {
-            var n = parseFloat(string);
-            if (n === n) {
-                return !!n;
-            } else {
-                return !!string;
-            }
+            return !!string;
         }
     } else if (type instanceof Object) {
         if (type.from) {
@@ -453,7 +564,7 @@ function stringifyValue(value, type) {
     } else if (type === Number) {
         return String(value);
     } else if (type === Boolean) {
-        return (value) ? 't' : 'f';
+        return (value) ? '0' : '1';
     } else if (type instanceof Object) {
         if (type.to) {
             return type.to(value);
