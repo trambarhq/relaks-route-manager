@@ -108,7 +108,7 @@ prototype.componentWillUnmount = function() {
 prototype.change = function(url, options) {
     var match = this.match(url);
     if (match) {
-        this.setLocationURL(url, options || {});
+        this.setLocationURL(url, match, options || {});
         return this.apply(match, options || {});
     } else {
         var err = new Error('No route');
@@ -247,7 +247,8 @@ prototype.match = function(url) {
                 matchTemplate(queryVarValue, queryVarTemplate, types, params);
             }
             matchTemplate(urlParts.hash, routeDef.hash, types, params);
-            return { url: url, name: name, params: params, context: context };
+            var now = (new Date).toISOString();
+            return { url: url, name: name, params: params, context: context, time: now };
         }
     }
     return null;
@@ -422,22 +423,24 @@ prototype.getLocationURL = function(location) {
     }
 };
 
-prototype.setLocationURL = function(url, options) {
-    var replace = options.replace || false;
-    var currentURL = this.getLocationURL(location);
-    if (currentURL !== url) {
-        if (this.props.useHashFallback) {
-            var hash = '#' + url;
-            if (replace) {
-                location.replace(hash)
+prototype.setLocationURL = function(url, state, options) {
+    if (this.props.trackLocation) {
+        var replace = options.replace || false;
+        var currentURL = this.getLocationURL(location);
+        if (currentURL !== url) {
+            if (this.props.useHashFallback) {
+                var hash = '#' + url;
+                if (replace) {
+                    location.replace(hash)
+                } else {
+                    location.href = hash;
+                }
             } else {
-                location.href = hash;
-            }
-        } else {
-            if (replace) {
-                history.replaceState({}, '', url);
-            } else {
-                history.pushState({}, '', url);
+                if (replace) {
+                    history.replaceState(state, '', url);
+                } else {
+                    history.pushState(state, '', url);
+                }
             }
         }
     }
@@ -479,7 +482,6 @@ prototype.setLocationHandler = function(enabled) {
 prototype.handleLinkClick = function(evt) {
     if (evt.button === 0) {
         var link = getLink(evt.target);
-        var match = false;
         if (link && !link.target && !link.download) {
             var url = this.getLocationURL(link);
             if (url) {
@@ -489,7 +491,7 @@ prototype.handleLinkClick = function(evt) {
                     evt.stopPropagation();
 
                     var options = { replace: false };
-                    this.setLocationURL(url, options);
+                    this.setLocationURL(url, match, options);
                     this.apply(match, options);
                 }
             }
@@ -497,32 +499,49 @@ prototype.handleLinkClick = function(evt) {
     }
 };
 
+var pageStartTime = (new Date).toISOString();
+
 /**
  * Called when the user press the back button
  *
  * @param  {Event} evt
  */
 prototype.handlePopState = function(evt) {
-    evt.preventDefault();
+    var state = evt.state;
+    var history = this.state.history;
+    var last = history[history.length - 1];
 
-    // resolve promise created in back()
-    var resolve = this.backResolve;
-    var reject = this.backReject;
-    this.backResolve = undefined;
-    this.backReject = undefined;
+    if (state && last && state.time < last.time) {
+        // resolve promise created in back()
+        var resolve = this.backResolve;
+        var reject = this.backReject;
+        this.backResolve = undefined;
+        this.backReject = undefined;
 
-    var url = this.getLocationURL(location);
-    var match = this.match(url);
-    if (match) {
-        this.apply(match, { pop: true }).then(function() {
-            if (resolve) {
-                resolve();
+        var url = this.getLocationURL(location);
+        var match = this.match(url);
+        if (match) {
+            this.apply(match, { pop: true }).then(function() {
+                if (resolve) {
+                    resolve();
+                }
+            }, function(err) {
+                if (reject) {
+                    reject(err);
+                }
+            });
+        }
+    } else {
+        var url = this.getLocationURL(location);
+        var match = this.match(url);
+        if (match) {
+            var replace = false;
+            if (state && state.time < pageStartTime) {
+                // going back to a page which we don't remember
+                replace = true;
             }
-        }, function(err) {
-            if (reject) {
-                reject(err);
-            }
-        });
+            this.apply(match, { replace: replace });
+        }
     }
 };
 
