@@ -11,6 +11,7 @@ function ReactRouteManager() {
         context: {},
         history: [],
     };
+    this.startTime = getTime();
 }
 
 prototype.constructor = ReactRouteManager;
@@ -108,8 +109,9 @@ prototype.componentWillUnmount = function() {
 prototype.change = function(url, options) {
     var match = this.match(url);
     if (match) {
-        this.setLocationURL(url, match, options || {});
-        return this.apply(match, options || {});
+        var replace = (options) ? options.replace || false : false;
+        var time = getTime();
+        return this.apply(match, time, true, replace);
     } else {
         var err = new Error('No route');
         return Promise.reject(err);
@@ -209,8 +211,7 @@ prototype.back = function() {
             }, 50);
         });
     } else {
-        var match = history[history.length - 2];
-        return this.apply(match, { pop: true });
+
     }
 };
 
@@ -247,34 +248,57 @@ prototype.match = function(url) {
                 matchTemplate(queryVarValue, queryVarTemplate, types, params);
             }
             matchTemplate(urlParts.hash, routeDef.hash, types, params);
-            var now = (new Date).toISOString();
-            return { url: url, name: name, params: params, context: context, time: now };
+            return { url: url, name: name, params: params, context: context };
         }
     }
     return null;
 };
 
 /**
- * Load necessary module(s) for a route, set the state, and trigger change event
+ * Load necessary module(s) for a route, append to history, set the state,
+ * and trigger change event
  *
  * @param  {Object} match
- * @param  {Object} options
+ * @param  {String} time
+ * @param  {Boolean} sync
+ * @param  {Boolean} replace
  *
  * @return {Promise}
  */
-prototype.apply = function(match, options) {
-    var replace = options.replace || false;
-    var pop = options.pop || false;
+prototype.apply = function(match, time, sync, replace) {
     var _this = this;
     return this.load(match).then(function() {
         return new Promise(function(resolve, reject) {
             var history = _this.state.history.slice();
-            if (pop) {
-                history.pop();
-            } else if (replace && history.length > 0) {
-                history[history.length - 1] = match;
+            if (time >= _this.startTime) {
+                if (!replace) {
+                    // see if we're going backward
+                    var index = -1;
+                    for (var i = 0; i < history.length; i++) {
+                        if (history[i].time === time) {
+                            index = i;
+                        }
+                    }
+                    if (index !== -1) {
+                        // remove entry and those after it
+                        history.splice(index);
+                    }
+                }
             } else {
-                history.push(match);
+                // going into history prior to page load
+                // remember the time forward movement from deep into the past
+                // works correctly
+                history = [];
+                _this.startTime = time;
+            }
+            var entry =  { url: match.url, time: time };
+            if (replace && history.length > 0) {
+                history[history.length - 1] = entry;
+            } else {
+                history.push(entry);
+            }
+            if (sync) {
+                _this.setLocationURL(match.url, { time: time }, replace);
             }
             var state = {
                 url: match.url,
@@ -423,9 +447,8 @@ prototype.getLocationURL = function(location) {
     }
 };
 
-prototype.setLocationURL = function(url, state, options) {
+prototype.setLocationURL = function(url, state, replace) {
     if (this.props.trackLocation) {
-        var replace = options.replace || false;
         var currentURL = this.getLocationURL(location);
         if (currentURL !== url) {
             if (this.props.useHashFallback) {
@@ -487,19 +510,15 @@ prototype.handleLinkClick = function(evt) {
             if (url) {
                 var match = this.match(url);
                 if (match) {
+                    var time = getTime();
                     evt.preventDefault();
                     evt.stopPropagation();
-
-                    var options = { replace: false };
-                    this.setLocationURL(url, match, options);
-                    this.apply(match, options);
+                    this.apply(match, time, true, false);
                 }
             }
         }
     }
 };
-
-var pageStartTime = (new Date).toISOString();
 
 /**
  * Called when the user press the back button
@@ -507,41 +526,18 @@ var pageStartTime = (new Date).toISOString();
  * @param  {Event} evt
  */
 prototype.handlePopState = function(evt) {
-    var state = evt.state;
-    var history = this.state.history;
-    var last = history[history.length - 1];
+    var time = (evt.state) ? evt.state.time : getTime();
+    var url = this.getLocationURL(location);
+    var match = this.match(url);
+    var promise = this.apply(match, time, false, false);
 
-    if (state && last && state.time < last.time) {
-        // resolve promise created in back()
-        var resolve = this.backResolve;
-        var reject = this.backReject;
+    // resolve promise created in back()
+    var resolve = this.backResolve;
+    var reject = this.backReject;
+    if (resolve) {
         this.backResolve = undefined;
         this.backReject = undefined;
-
-        var url = this.getLocationURL(location);
-        var match = this.match(url);
-        if (match) {
-            this.apply(match, { pop: true }).then(function() {
-                if (resolve) {
-                    resolve();
-                }
-            }, function(err) {
-                if (reject) {
-                    reject(err);
-                }
-            });
-        }
-    } else {
-        var url = this.getLocationURL(location);
-        var match = this.match(url);
-        if (match) {
-            var replace = false;
-            if (state && state.time < pageStartTime) {
-                // going back to a page which we don't remember
-                replace = true;
-            }
-            this.apply(match, { replace: replace });
-        }
+        promise.then(resolve, reject);
     }
 };
 
@@ -793,4 +789,8 @@ function getLink(element) {
         element = element.parentNode;
     }
     return element;
+}
+
+function getTime() {
+    return (new Date).toISOString();
 }
