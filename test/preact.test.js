@@ -727,7 +727,7 @@ describe('Preact test', function() {
         })
     })
     describe('#back()', function() {
-        it ('should prepend base path before rewrite occurs', function() {
+        it ('should return to previous route', function() {
             var props = {
                 routes: {
                     'story-page': {
