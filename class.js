@@ -434,7 +434,7 @@ prototype.getLocationURL = function(location) {
             if (location.pathname !== documentLocation.pathname) {
                 return '';
             }
-            if (location.search === documentLocation.search) {
+            if (location.search !== documentLocation.search) {
                 return '';
             }
         }
@@ -452,18 +452,12 @@ prototype.setLocationURL = function(url, state, replace) {
         var currentURL = this.getLocationURL(location);
         if (currentURL !== url) {
             if (this.props.useHashFallback) {
-                var hash = '#' + url;
-                if (replace) {
-                    location.replace(hash)
-                } else {
-                    location.href = hash;
-                }
+                url = '#' + url;
+            }
+            if (replace) {
+                history.replaceState(state, '', url);
             } else {
-                if (replace) {
-                    history.replaceState(state, '', url);
-                } else {
-                    history.pushState(state, '', url);
-                }
+                history.pushState(state, '', url);
             }
         }
     }
