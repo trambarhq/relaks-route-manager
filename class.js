@@ -26,6 +26,7 @@ if (process.env.NODE_ENV !== 'production') {
             trackLocation: PropTypes.bool,
             useHashFallback: PropTypes.bool,
             basePath: PropTypes.string,
+            initialPath: PropTypes.string,
             routes: PropTypes.objectOf(PropTypes.shape({
                 path: PropTypes.string.isRequired,
                 params: PropTypes.object,
@@ -67,9 +68,12 @@ prototype.componentWillMount = function() {
     }
     if (this.props.trackLocation) {
         this.setLocationHandler(true);
+
+        var url = this.getLocationURL(location);
+        this.change(url, { replace: true });
+    } else {
+        this.change(this.props.initialPath || '/', { replace: true });
     }
-    var url = this.getLocationURL(location);
-    this.change(url, { replace: true });
 };
 
 /**
@@ -211,7 +215,8 @@ prototype.back = function() {
             }, 50);
         });
     } else {
-
+        var previous = history[history.length - 2];
+        return this.apply(previous, previous.time, false, false);
     }
 };
 
@@ -291,7 +296,13 @@ prototype.apply = function(match, time, sync, replace) {
                 history = [];
                 _this.startTime = time;
             }
-            var entry =  { url: match.url, time: time };
+            var entry =  {
+                url: match.url,
+                name: match.name,
+                params: match.params,
+                context: match.context,
+                time: time
+            };
             if (replace && history.length > 0) {
                 history[history.length - 1] = entry;
             } else {
