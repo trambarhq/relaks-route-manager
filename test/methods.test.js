@@ -1,9 +1,8 @@
 import Promise from 'bluebird';
 import { expect, default as Chai } from 'chai';
 import ChaiAsPromised from 'chai-as-promised';
-import PreactRenderSpy from 'preact-render-spy';
 import { h } from 'preact'
-import RelaksRouteManager from '../preact';
+import RelaksRouteManager from '../index';
 
 Chai.use(ChaiAsPromised);
 
@@ -12,12 +11,11 @@ Chai.use(ChaiAsPromised);
 describe('Preact test', function() {
     describe('#rebase()', function() {
         it ('should remove base path from path', function() {
-            var props = {
+            var options = {
                 routes: {},
                 basePath: '/hello'
             };
-            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
-            var component = wrapper.component();
+            var component = new RelaksRouteManager(options);
             var urlParts = {
                 path: '/hello/world',
                 query: {},
@@ -28,12 +26,11 @@ describe('Preact test', function() {
             expect(urlParts.path).to.equal('/world');
         })
         it ('should set the path to / when it match the base path exactly', function() {
-            var props = {
+            var options = {
                 routes: {},
                 basePath: '/hello'
             };
-            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
-            var component = wrapper.component();
+            var component = new RelaksRouteManager(options);
             var urlParts = {
                 path: '/hello',
                 query: {},
@@ -44,12 +41,11 @@ describe('Preact test', function() {
             expect(urlParts.path).to.equal('/');
         })
         it ('should return false and leave the path alone when there is no match', function() {
-            var props = {
+            var options = {
                 routes: {},
                 basePath: '/hello'
             };
-            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
-            var component = wrapper.component();
+            var component = new RelaksRouteManager(options);
             var urlParts = {
                 path: '/hamburger/cheesy',
                 query: {},
@@ -60,12 +56,11 @@ describe('Preact test', function() {
             expect(urlParts.path).to.equal('/hamburger/cheesy');
         })
         it ('should not match half a name', function() {
-            var props = {
+            var options = {
                 routes: {},
                 basePath: '/hello'
             };
-            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
-            var component = wrapper.component();
+            var component = new RelaksRouteManager(options);
             var urlParts = {
                 path: '/hello world/whatever',
                 query: {},
@@ -76,12 +71,11 @@ describe('Preact test', function() {
             expect(urlParts.path).to.equal('/hello world/whatever');
         })
         it ('should prepend path with base path', function() {
-            var props = {
+            var options = {
                 routes: {},
                 basePath: '/hello'
             };
-            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
-            var component = wrapper.component();
+            var component = new RelaksRouteManager(options);
             var urlParts = {
                 path: '/world',
                 query: {},
@@ -105,12 +99,11 @@ describe('Preact test', function() {
                     }
                 }
             };
-            var props = {
+            var options = {
                 routes: {},
                 rewrites: [ r1 ]
             };
-            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
-            var component = wrapper.component();
+            var component = new RelaksRouteManager(options);
             var urlParts = {
                 path: '/https/example.net/users',
                 query: {},
@@ -130,12 +123,11 @@ describe('Preact test', function() {
                     }
                 }
             };
-            var props = {
+            var options = {
                 routes: {},
                 rewrites: [ r1 ]
             };
-            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
-            var component = wrapper.component();
+            var component = new RelaksRouteManager(options);
             var urlParts = {
                 path: '/users',
                 query: {},
@@ -161,12 +153,11 @@ describe('Preact test', function() {
                 }
             };
             var canceled;
-            var props = {
+            var options = {
                 routes: {},
                 rewrites: [ r1, r2 ]
             };
-            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
-            var component = wrapper.component();
+            var component = new RelaksRouteManager(options);
             var urlParts = {
                 path: '/users',
                 query: {},
@@ -188,12 +179,11 @@ describe('Preact test', function() {
                 }
             };
             var called = [];
-            var props = {
+            var options = {
                 routes: {},
                 rewrites: [ r1, r2 ]
             };
-            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
-            var component = wrapper.component();
+            var component = new RelaksRouteManager(options);
             var urlParts = {
                 path: '/users',
                 query: {},
@@ -206,33 +196,31 @@ describe('Preact test', function() {
     })
     describe('#match', function() {
         it ('should find a matching route', function() {
-            var props = {
+            var options = {
                 routes: {
                     'profile-page': {
                         path: '/profile/',
                     }
                 },
             };
-            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
-            var component = wrapper.component();
+            var component = new RelaksRouteManager(options);
             var match = component.match('/profile/');
             expect(match).to.have.property('name').that.equals('profile-page');
         })
         it ('should match a URL with missing trailing slash', function() {
-            var props = {
+            var options = {
                 routes: {
                     'profile-page': {
                         path: '/profile/',
                     }
                 },
             };
-            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
-            var component = wrapper.component();
+            var component = new RelaksRouteManager(options);
             var match = component.match('/profile');
             expect(match).to.have.property('name').that.equals('profile-page');
         })
         it ('should correct cast a parameter to number', function() {
-            var props = {
+            var options = {
                 routes: {
                     'story-page': {
                         path: '/story/${id}',
@@ -240,14 +228,13 @@ describe('Preact test', function() {
                     }
                 },
             };
-            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
-            var component = wrapper.component();
+            var component = new RelaksRouteManager(options);
             var match = component.match('/story/123');
             expect(match).to.have.property('name').that.equals('story-page');
             expect(match.params).to.have.property('id').to.be.a('number').that.equals(123);
         })
         it ('should call function to convert parameter', function() {
-            var props = {
+            var options = {
                 routes: {
                     'search-page': {
                         path: '/search',
@@ -259,15 +246,14 @@ describe('Preact test', function() {
                     }
                 },
             };
-            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
-            var component = wrapper.component();
+            var component = new RelaksRouteManager(options);
             var match = component.match('/search?q=hello+world&m=5');
             expect(match).to.have.property('name').that.equals('search-page');
             expect(match.params).to.have.property('keywords').to.deep.equal(['hello', 'world']);
             expect(match.params).to.have.property('max').to.equal(5);
         })
         it ('should skip missing query variable', function() {
-            var props = {
+            var options = {
                 routes: {
                     'search-page': {
                         path: '/search',
@@ -279,15 +265,14 @@ describe('Preact test', function() {
                     }
                 },
             };
-            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
-            var component = wrapper.component();
+            var component = new RelaksRouteManager(options);
             var match = component.match('/search?q=hello+world');
             expect(match).to.have.property('name').that.equals('search-page');
             expect(match.params).to.have.property('keywords').to.deep.equal(['hello', 'world']);
             expect(match.params).to.not.have.property('max');
         })
         it ('should find parameter in URL hash', function() {
-            var props = {
+            var options = {
                 routes: {
                     'news-page': {
                         path: '/news/',
@@ -296,14 +281,13 @@ describe('Preact test', function() {
                     }
                 },
             };
-            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
-            var component = wrapper.component();
+            var component = new RelaksRouteManager(options);
             var match = component.match('/news/#S1234');
             expect(match).to.have.property('name').that.equals('news-page');
             expect(match.params).to.have.property('storyID').that.equals(1234);
         })
         it ('should extract two parameters from URL hash', function() {
-            var props = {
+            var options = {
                 routes: {
                     'news-page': {
                         path: '/news/',
@@ -312,8 +296,7 @@ describe('Preact test', function() {
                     }
                 },
             };
-            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
-            var component = wrapper.component();
+            var component = new RelaksRouteManager(options);
             var match = component.match('/news/#S1234R333');
             expect(match).to.have.property('name').that.equals('news-page');
             expect(match.params).to.have.property('storyID').that.equals(1234);
@@ -322,7 +305,7 @@ describe('Preact test', function() {
     })
     describe('#change()', function() {
         it ('should change the route', function() {
-            var props = {
+            var options = {
                 routes: {
                     'news-page': {
                         path: '/news/',
@@ -344,17 +327,16 @@ describe('Preact test', function() {
                 },
                 basePath: '/forum'
             };
-            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
-            var component = wrapper.component();
+            var component = new RelaksRouteManager(options);
             return component.change('/forum/story/5').then(() => {
-                expect(component.state.url).to.equal('/forum/story/5');
-                expect(component.state.name).to.equal('story-page');
-                expect(component.state.params).to.deep.equal({ id: 5 });
+                expect(component.url).to.equal('/forum/story/5');
+                expect(component.name).to.equal('story-page');
+                expect(component.params).to.deep.equal({ id: 5 });
                 expect(location.pathname).to.equal('/forum/story/5');
             });
         })
         it ('should change location.hash when fallback is used', function() {
-            var props = {
+            var options = {
                 useHashFallback: true,
                 routes: {
                     'news-page': {
@@ -376,8 +358,7 @@ describe('Preact test', function() {
                     }
                 },
             };
-            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
-            var component = wrapper.component();
+            var component = new RelaksRouteManager(options);
             return component.change('/story/9').then(() => {
                 expect(location.hash).to.equal('#/story/9');
             });
@@ -399,7 +380,7 @@ describe('Preact test', function() {
                     }
                 },
             };
-            var props = {
+            var options = {
                 routes: {
                     'story-page': {
                         path: '/story/${id}',
@@ -408,17 +389,16 @@ describe('Preact test', function() {
                 },
                 rewrites: [ r1 ]
             };
-            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
-            var component = wrapper.component();
+            var component = new RelaksRouteManager(options);
             return component.change('/https/example.net/story/5').then(() => {
-                expect(component.state.context).to.deep.equal({
+                expect(component.context).to.deep.equal({
                     protocol: 'https',
                     host: 'example.net'
                 });
             });
         })
         it ('should fail when no route matches', function() {
-            var props = {
+            var options = {
                 routes: {
                     'news-page': {
                         path: '/news/',
@@ -440,12 +420,11 @@ describe('Preact test', function() {
                 },
                 basePath: '/forum'
             };
-            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
-            var component = wrapper.component();
+            var component = new RelaksRouteManager(options);
             return expect(component.change('/forum/nowhere')).to.eventually.be.rejected;
         })
         it ('should fail when URL does not contain base path', function() {
-            var props = {
+            var options = {
                 routes: {
                     'news-page': {
                         path: '/news/',
@@ -467,14 +446,13 @@ describe('Preact test', function() {
                 },
                 basePath: '/forum'
             };
-            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
-            var component = wrapper.component();
+            var component = new RelaksRouteManager(options);
             return expect(component.change('/blog/story/5')).to.eventually.be.rejected;
         })
     })
     describe('#fill()', function() {
         it ('should fill path template with parameters', function() {
-            var props = {
+            var options = {
                 routes: {
                     'story-page': {
                         path: '/story/${id}',
@@ -482,13 +460,12 @@ describe('Preact test', function() {
                     }
                 },
             };
-            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
-            var component = wrapper.component();
+            var component = new RelaksRouteManager(options);
             var urlParts = component.fill('story-page', { id: 747 });
             expect(urlParts).to.have.property('path').that.equals('/story/747');
         })
         it ('should fill query templates with parameters', function() {
-            var props = {
+            var options = {
                 routes: {
                     'search-page': {
                         path: '/search',
@@ -500,8 +477,7 @@ describe('Preact test', function() {
                     }
                 },
             };
-            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
-            var component = wrapper.component();
+            var component = new RelaksRouteManager(options);
             var urlParts = component.fill('search-page', {
                 keywords: [ 'cat', 'dog' ],
                 max: 8
@@ -513,7 +489,7 @@ describe('Preact test', function() {
             });
         })
         it ('should omit missing variable', function() {
-            var props = {
+            var options = {
                 routes: {
                     'search-page': {
                         path: '/search',
@@ -525,8 +501,7 @@ describe('Preact test', function() {
                     }
                 },
             };
-            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
-            var component = wrapper.component();
+            var component = new RelaksRouteManager(options);
             var urlParts = component.fill('search-page', {
                 keywords: [ 'cat', 'dog' ],
             });
@@ -536,7 +511,7 @@ describe('Preact test', function() {
             });
         })
         it ('should fill hash with multiple parameters', function() {
-            var props = {
+            var options = {
                 routes: {
                     'news-page': {
                         path: '/news/',
@@ -545,8 +520,7 @@ describe('Preact test', function() {
                     }
                 },
             };
-            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
-            var component = wrapper.component();
+            var component = new RelaksRouteManager(options);
             var urlParts = component.fill('news-page', {
                 storyID: 222,
                 reactionID: 444,
@@ -555,7 +529,7 @@ describe('Preact test', function() {
             expect(urlParts).to.have.property('hash').that.equals('S222R444');
         })
         it ('should omit missing parameter from hash', function() {
-            var props = {
+            var options = {
                 routes: {
                     'news-page': {
                         path: '/news/',
@@ -564,8 +538,7 @@ describe('Preact test', function() {
                     }
                 },
             };
-            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
-            var component = wrapper.component();
+            var component = new RelaksRouteManager(options);
             var urlParts = component.fill('news-page', {
                 reactionID: 444,
             });
@@ -575,7 +548,7 @@ describe('Preact test', function() {
     })
     describe('#find()', function() {
         it ('should generate a URL with query variables', function() {
-            var props = {
+            var options = {
                 routes: {
                     'search-page': {
                         path: '/search',
@@ -587,8 +560,7 @@ describe('Preact test', function() {
                     }
                 },
             };
-            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
-            var component = wrapper.component();
+            var component = new RelaksRouteManager(options);
             var url = component.find('search-page', {
                 keywords: [ 'cat', 'dog' ],
                 max: 8
@@ -596,7 +568,7 @@ describe('Preact test', function() {
             expect(url).to.equal('/search?q=cat%20dog&m=8');
         })
         it ('should generate a URL with hash', function() {
-            var props = {
+            var options = {
                 routes: {
                     'news-page': {
                         path: '/news/',
@@ -605,8 +577,7 @@ describe('Preact test', function() {
                     }
                 },
             };
-            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
-            var component = wrapper.component();
+            var component = new RelaksRouteManager(options);
             var url = component.find('news-page', {
                 storyID: 222,
                 reactionID: 444,
@@ -614,7 +585,7 @@ describe('Preact test', function() {
             expect(url).to.equal('/news/#S222R444');
         })
         it ('should prepend path with base path', function() {
-            var props = {
+            var options = {
                 routes: {
                     'story-page': {
                         path: '/story/${id}',
@@ -623,13 +594,12 @@ describe('Preact test', function() {
                 },
                 basePath: '/forum'
             };
-            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
-            var component = wrapper.component();
+            var component = new RelaksRouteManager(options);
             var url = component.find('story-page', { id: 747 });
             expect(url).to.equal('/forum/story/747');
         })
         it ('should produce a hash-only URL when fallback is used', function() {
-            var props = {
+            var options = {
                 useHashFallback: true,
                 routes: {
                     'story-page': {
@@ -638,8 +608,7 @@ describe('Preact test', function() {
                     }
                 },
             };
-            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
-            var component = wrapper.component();
+            var component = new RelaksRouteManager(options);
             var url = component.find('story-page', { id: 787 });
             expect(url).to.equal('#/story/787');
         })
@@ -660,7 +629,7 @@ describe('Preact test', function() {
                     }
                 },
             };
-            var props = {
+            var options = {
                 routes: {
                     'story-page': {
                         path: '/story/${id}',
@@ -669,8 +638,7 @@ describe('Preact test', function() {
                 },
                 rewrites: [ r1 ]
             };
-            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
-            var component = wrapper.component();
+            var component = new RelaksRouteManager(options);
             return component.change('/https/example.net/story/5').then(() => {
                 var url = component.find('story-page', { id: 747 });
                 expect(url).to.equal('/https/example.net/story/747');
@@ -693,7 +661,7 @@ describe('Preact test', function() {
                     }
                 },
             };
-            var props = {
+            var options = {
                 routes: {
                     'story-page': {
                         path: '/story/${id}',
@@ -703,15 +671,14 @@ describe('Preact test', function() {
                 rewrites: [ r1 ],
                 basePath: '/forum'
             };
-            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
-            var component = wrapper.component();
+            var component = new RelaksRouteManager(options);
             return component.change('/https/example.net/forum/story/5').then(() => {
                 var url = component.find('story-page', { id: 747 });
                 expect(url).to.equal('/https/example.net/forum/story/747');
             });
         })
         it ('should throw where there is no route by that name', function() {
-            var props = {
+            var options = {
                 routes: {
                     'story-page': {
                         path: '/story/${id}',
@@ -719,8 +686,7 @@ describe('Preact test', function() {
                     }
                 },
             };
-            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
-            var component = wrapper.component();
+            var component = new RelaksRouteManager(options);
             expect(() => {
                 var url = component.find('stroy-page', { id: 747 });
             }).to.throw();
@@ -728,25 +694,30 @@ describe('Preact test', function() {
     })
     describe('#back()', function() {
         it ('should return to previous route', function() {
-            var props = {
+            var options = {
                 routes: {
+                    'home': {
+                        path: '/',
+                    },
                     'story-page': {
                         path: '/story/${id}',
                         params: { id: Number },
                     }
                 },
             };
-            var wrapper = PreactRenderSpy.deep(<RelaksRouteManager {...props} />);
-            var component = wrapper.component();
-            return component.change('/story/5').then(() => {
-                return component.change('/story/7').then(() => {
-                    return component.back().then(() => {
-                        expect(location.pathname).to.equal('/story/5');
+            var component = new RelaksRouteManager(options);
+            history.pushState({}, '', '/');
+            // need to run initialize() here, since that attaches the popState handler
+            return component.initialize().then(() => {
+                return component.change('/story/5').then(() => {
+                    return component.change('/story/7').then(() => {
+                        return component.back().then(() => {
+                            expect(location.pathname).to.equal('/story/5');
+                        });
                     });
                 });
             });
         })
-
     })
 })
 
