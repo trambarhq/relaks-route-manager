@@ -782,7 +782,7 @@ function RelaksRouteManagerEvent(type, target, props) {
     this.type = type;
     this.target = target;
     for (var name in props) {
-        this[name] = props;
+        this[name] = props[name];
     }
     this.defaultPrevented = false;
     this.decisionPromise = null;
