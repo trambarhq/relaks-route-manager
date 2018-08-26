@@ -1,8 +1,5 @@
-import { expect, default as Chai } from 'chai';
-import { h } from 'preact'
+import { expect } from 'chai';
 import RelaksRouteManager from '../index';
-
-/** @jsx h */
 
 describe('#rebase()', function() {
     it ('should remove base path from path', function() {

@@ -1,8 +1,5 @@
-import { expect, default as Chai } from 'chai';
-import { h } from 'preact'
+import { expect } from 'chai';
 import RelaksRouteManager from '../index';
-
-/** @jsx h */
 
 describe('#match', function() {
     it ('should find a matching route', function() {

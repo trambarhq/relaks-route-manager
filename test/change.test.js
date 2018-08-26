@@ -1,11 +1,8 @@
 import { expect, default as Chai } from 'chai';
 import ChaiAsPromised from 'chai-as-promised';
-import { h } from 'preact'
 import RelaksRouteManager from '../index';
 
 Chai.use(ChaiAsPromised);
-
-/** @jsx h */
 
 describe('#change()', function() {
     it ('should change the route', function() {
