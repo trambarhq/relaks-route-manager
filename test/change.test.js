@@ -98,7 +98,9 @@ describe('#change()', function() {
             basePath: '/forum'
         };
         var component = new RelaksRouteManager(options);
-        return expect(component.change('/forum/nowhere')).to.eventually.be.rejected;
+        return expect(component.change('/forum/nowhere'))
+            .to.eventually.be.rejectedWith(Error)
+            .that.has.property('status', 404);
     })
     it ('should fail when URL does not contain base path', function() {
         var options = {
@@ -116,6 +118,8 @@ describe('#change()', function() {
             basePath: '/forum'
         };
         var component = new RelaksRouteManager(options);
-        return expect(component.change('/blog/story/5')).to.eventually.be.rejected;
+        return expect(component.change('/blog/story/5'))
+            .to.eventually.be.rejectedWith(Error)
+            .that.has.property('status', 404);
     })
 })

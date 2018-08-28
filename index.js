@@ -1,7 +1,8 @@
+var SSR = (typeof window !== 'object');
 var defaultOptions = {
     useHashFallback: false,
-    trackLinks: true,
-    trackLocation: true,
+    trackLinks: (SSR) ? false : true,
+    trackLocation: (SSR) ? false : true,
     basePath: '',
     initialPath: '/',
 };
@@ -85,8 +86,10 @@ prototype.triggerEvent = function(evt) {
 prototype.addRoutes = function(routes) {
     for (var name in routes) {
         if (routes[name] !== this.routes[name]) {
-            if (this.routes[name]) {
-                throw new Error('Duplicate route: ' + name);
+            if (process.env.NODE_ENV !== 'production') {
+                if (this.routes[name]) {
+                    console.warn('Overwriting existing route: ', this.routes[name]);
+                }
             }
             this.routes[name] = routes[name];
         }
@@ -133,7 +136,7 @@ prototype.change = function(url, options) {
         var time = getTime();
         return this.apply(match, time, true, replace);
     } else {
-        var err = new Error('No route');
+        var err = new RelaksRouteManagerError(404, 'No route');
         return Promise.reject(err);
     }
 };
@@ -211,7 +214,8 @@ prototype.find = function(name, params, newContext) {
  */
 prototype.back = function() {
     if (this.history.length <= 1) {
-        return Promise.reject(new Error('Cannot go beyond starting page'));
+        var err = new RelaksRouteManagerError(400, 'Going beyond starting page');
+        return Promise.reject(err);
     }
     if (this.options.trackLocation) {
         var _this = this;
@@ -226,7 +230,7 @@ prototype.back = function() {
                 if (reject) {
                     _this.backResolve = undefined;
                     _this.backReject = undefined;
-                    reject(new Error('Unable to navigate to previous page'));
+                    reject(new RelaksRouteManagerError(400, 'Unable to go back'));
                 }
             }, 50);
         });
@@ -352,7 +356,7 @@ prototype.apply = function(match, time, sync, replace) {
 prototype.fill = function(name, params) {
     var routeDef = this.routes[name];
     if (!routeDef) {
-        throw new Error('No route by that name: ' + name);
+        throw new RelaksRouteManagerError(500, 'No route by that name: ' + name);
     }
     var types = routeDef.params;
     var path = fillTemplate(routeDef.path, types, params, true);
@@ -804,6 +808,14 @@ prototype.waitForDecision = function() {
     return this.decisionPromise || Promise.resolve();
 };
 
+function RelaksRouteManagerError(status, message) {
+    this.status = status;
+    this.message = message;
+}
+
+RelaksRouteManagerError.prototype = Object.create(Error.prototype)
+
 module.exports = RelaksRouteManager;
 module.exports.RelaksRouteManager = RelaksRouteManager;
 module.exports.RelaksRouteManagerEvent = RelaksRouteManagerEvent;
+module.exports.RelaksRouteManagerError = RelaksRouteManagerError;

@@ -1,5 +1,8 @@
-import { expect } from 'chai';
+import { expect, default as Chai } from 'chai';
+import ChaiAsPromised from 'chai-as-promised';
 import RelaksRouteManager from '../index';
+
+Chai.use(ChaiAsPromised);
 
 describe('#back()', function() {
     it ('should return to previous route', function() {
@@ -25,6 +28,29 @@ describe('#back()', function() {
                     });
                 });
             });
+        });
+    })
+    it ('should reject when there is no previous page to return to', function() {
+        var options = {
+            trackLinks: false,
+            trackLocation: false,
+            initialPath: '/',
+            routes: {
+                'home': {
+                    path: '/',
+                },
+                'story-page': {
+                    path: '/story/${id}',
+                    params: { id: Number },
+                }
+            },
+        };
+        var component = new RelaksRouteManager(options);
+        // need to run initialize() here, since that attaches the popState handler
+        return component.initialize().then(() => {
+            return expect(component.back())
+                .to.eventually.be.rejectedWith(Error)
+                .that.has.property('status', 400);
         });
     })
 })

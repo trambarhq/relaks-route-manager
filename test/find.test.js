@@ -144,7 +144,7 @@ describe('#find()', function() {
         var component = new RelaksRouteManager(options);
         expect(() => {
             var url = component.find('stroy-page', { id: 747 });
-        }).to.throw();
+        }).to.throw(Error).that.has.property('status', 500);
     })
 })
 
