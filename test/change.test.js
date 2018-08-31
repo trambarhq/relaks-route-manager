@@ -1,4 +1,4 @@
-import { expect, default as Chai } from 'chai';
+import Chai, { expect } from 'chai';
 import ChaiAsPromised from 'chai-as-promised';
 import RelaksRouteManager from '../index';
 
