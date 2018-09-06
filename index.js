@@ -4,10 +4,10 @@ var defaultOptions = {
     trackLinks: (SSR) ? false : true,
     trackLocation: (SSR) ? false : true,
     basePath: '',
-    initialPath: '/',
 };
 
 function RelaksRouteManager(options) {
+    this.active = false;
     this.url = '';
     this.name = '';
     this.params = '';
@@ -38,40 +38,84 @@ function RelaksRouteManager(options) {
 
 var prototype = RelaksRouteManager.prototype;
 
-prototype.initialize = function() {
-    if (this.options.trackLinks) {
-        window.addEventListener('click', this.handleLinkClick);
+/**
+ * Activate the component
+ */
+prototype.activate = function() {
+    if (!this.active) {
+        if (this.options.trackLinks) {
+            window.addEventListener('click', this.handleLinkClick);
+        }
+        if (this.options.trackLocation) {
+            window.addEventListener('popstate', this.handlePopState);
+        }
+        this.active = true;
     }
-    var url;
-    if (this.options.trackLocation) {
-        url = this.getLocationURL(window.location);
-        window.addEventListener('popstate', this.handlePopState);
-    } else {
-        url = this.options.initialPath;
+};
+
+/**
+ * Deactivate the component
+ *
+ * @return {[type]}
+ */
+prototype.deactivate = function() {
+    if (this.active) {
+        if (this.options.trackLinks) {
+            window.removeEventListener('click', this.handleLinkClick);
+        }
+        if (this.options.trackLocation) {
+            window.removeEventListener('popstate', this.handlePopState);
+        }
+        this.active = false;
+    }
+};
+
+/**
+ * Load the initial route
+ *
+ * @param  {String|undefined} url
+ *
+ * @return {Promise<Boolean>}
+ */
+prototype.start = function(url) {
+    if (!url) {
+        if (this.options.trackLocation) {
+            url = this.getLocationURL(window.location);
+        }
     }
     return this.change(url, { replace: true });
-};
+}
 
-prototype.shutdown = function() {
-    var opt = this.options;
-    if (opt.trackLinks) {
-        window.removeEventListener('click', this.handleLinkClick);
-    }
-    if (opt.trackLocation) {
-        window.removeEventListener('popstate', this.handlePopState);
-    }
-};
-
+/**
+ * Attach an event handler
+ *
+ * @param  {String} type
+ * @param  {Function} handler
+ */
 prototype.addEventListener = function(type, handler) {
-    this.listeners.push({  type: type,  handler: handler });
+    this.listeners.push({ type: type,  handler: handler });
 };
 
+/**
+ * Remove an event handler
+ *
+ * @param  {String} type
+ * @param  {Function} handler
+ */
 prototype.removeEventListener = function(type, handler) {
     this.listeners = this.listeners.filter(function(listener) {
         return !(listener.type === type && listener.handler === handler);
     })
 };
 
+/**
+ * Send event to event listeners, return true or false depending on whether
+ * there were any listeners
+ *
+ * @param  {RelaksDjangoDataSourceEvent} evt
+ *
+ * @return {Boolean}
+ */
 prototype.triggerEvent = function(evt) {
     var fired = false;
     this.listeners.forEach(function(listener) {
@@ -83,6 +127,11 @@ prototype.triggerEvent = function(evt) {
     return fired;
 };
 
+/**
+ * Add routes
+ *
+ * @param  {Object<Object>} routes
+ */
 prototype.addRoutes = function(routes) {
     for (var name in routes) {
         if (routes[name] !== this.routes[name]) {
@@ -96,6 +145,11 @@ prototype.addRoutes = function(routes) {
     }
 };
 
+/**
+ * Remove routes
+ *
+ * @param  {Object<Object>} routes
+ */
 prototype.removeRoutes = function(routes) {
     for (var name in routes) {
         if (routes[name] === this.routes[name]) {
@@ -104,6 +158,11 @@ prototype.removeRoutes = function(routes) {
     }
 };
 
+/**
+ * Add rewrite rules
+ *
+ * @param  {Array<Object>} rewrites
+ */
 prototype.addRewrites = function(rewrites) {
     var _this = this;
     rewrites.forEach(function(rewrite) {
@@ -111,6 +170,11 @@ prototype.addRewrites = function(rewrites) {
     });
 };
 
+/**
+ * Add remove rules
+ *
+ * @param  {Array<Object>} rewrites
+ */
 prototype.removeRewrites = function(rewrites) {
     var _this = this;
     rewrites.forEach(function(rewrite) {

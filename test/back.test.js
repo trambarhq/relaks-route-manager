@@ -19,13 +19,12 @@ describe('#back()', function() {
         };
         var component = new RelaksRouteManager(options);
         history.pushState({}, '', '/');
-        // need to run initialize() here, since that attaches the popState handler
-        return component.initialize().then(() => {
-            return component.change('/story/5').then(() => {
-                return component.change('/story/7').then(() => {
-                    return component.back().then(() => {
-                        expect(location.pathname).to.equal('/story/5');
-                    });
+        // need to run activate() here, since that attaches the popState handler
+        component.activate();
+        return component.change('/story/5').then(() => {
+            return component.change('/story/7').then(() => {
+                return component.back().then(() => {
+                    expect(location.pathname).to.equal('/story/5');
                 });
             });
         });
@@ -46,11 +45,10 @@ describe('#back()', function() {
             },
         };
         var component = new RelaksRouteManager(options);
-        // need to run initialize() here, since that attaches the popState handler
-        return component.initialize().then(() => {
-            return expect(component.back())
-                .to.eventually.be.rejectedWith(Error)
-                .that.has.property('status', 400);
-        });
+        // need to run activate() here, since that attaches the popState handler
+        component.activate();
+        return expect(component.back())
+            .to.eventually.be.rejectedWith(Error)
+            .that.has.property('status', 400);
     })
 })
