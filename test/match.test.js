@@ -109,6 +109,21 @@ describe('#match', function() {
         expect(match.params).to.have.property('storyID').that.equals(1234);
         expect(match.params).to.have.property('reactionID').that.equals(333);
     })
+    it ('should match "*" to any path', function() {
+        var options = {
+            routes: {
+                'profile-page': {
+                    path: '/profile/',
+                },
+                'error-page': {
+                    path: '*',
+                },
+            },
+        };
+        var component = new RelaksRouteManager(options);
+        var match = component.match('/nowhere/');
+        expect(match).to.have.property('name').that.equals('error-page');
+    })
 })
 
 var WordList = {

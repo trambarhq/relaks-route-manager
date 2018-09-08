@@ -194,15 +194,37 @@ prototype.removeRewrites = function(rewrites) {
  * @return {Promise<Boolean>}
  */
 prototype.change = function(url, options) {
-    var match = this.match(url);
-    if (match) {
+    try {
+        var match = this.match(url);
         var replace = (options) ? options.replace || false : false;
         var time = getTime();
         return this.apply(match, time, true, replace);
-    } else {
-        var err = new RelaksRouteManagerError(404, 'No route');
+    } catch (err) {
         return Promise.reject(err);
     }
+};
+
+/**
+ * Switch to a route without changing the URL
+ *
+ * @param  {String} name
+ * @param  {Object} params
+ *
+ * @return {Promise<Boolean>}
+ */
+prototype.force = function(name, params) {
+    var _this = this;
+    var context = {};
+    for (var name in this.context) {
+        context[name] = this.context[name];
+    }
+    var match = { name: name, params: params || {}, context: context };
+    return this.load(match).then(() => {
+        _this.name = match.name;
+        _this.params = match.params;
+        _this.context = match.context;
+        _this.triggerEvent(new RelaksRouteManagerEvent('change', _this));
+    });
 };
 
 /**
@@ -249,7 +271,7 @@ prototype.replace = function(name, params) {
  * @return {String}
  */
 prototype.find = function(name, params, newContext) {
-    var urlParts = this.fill(name, params);
+    var urlParts = this.fill(name, params || {});
     var context = this.context;
     if (newContext) {
         context = {};
@@ -312,6 +334,9 @@ prototype.back = function() {
  * @return {Object|null}
  */
 prototype.match = function(url) {
+    if (typeof(url) !== 'string') {
+        throw new RelaksRouteManagerError(400, 'Invalid URL');
+    }
     // perform rewrites
     var urlParts = parseURL(url);
     var context = {};
@@ -493,8 +518,11 @@ prototype.rebase = function(direction, urlParts) {
 prototype.load = function(match) {
     try {
         var result;
-        var routeDef = this.routes[match.name];
-        if (routeDef && routeDef.load) {
+        var routeDef = (match) ? this.routes[match.name] : null;
+        if (!routeDef) {
+            throw new RelaksRouteManagerError(404, 'No route');
+        }
+        if (routeDef.load) {
             result = routeDef.load(match.params, match.context);
         }
         return Promise.resolve(result);
@@ -669,6 +697,9 @@ function matchTemplate(urlPart, template, types, params, isPath) {
             return template.from(urlPart, params);
         }
     } else if (typeof(template) === 'string') {
+        if (template === '*') {
+            return true;
+        }
         var re = getURLTemplateRegExp(template, types, isPath);
         var matches = re.exec(urlPart);
         if (!matches) {
@@ -779,6 +810,9 @@ function getRelativePath(basePath, path) {
 }
 
 function parseURL(url) {
+    if (typeof(url) !== 'string') {
+        throw new RelaksRouteManagerError(400, 'Invalid URL');
+    }
     var path = url;
     var hash = '';
     var hashIndex = path.indexOf('#');

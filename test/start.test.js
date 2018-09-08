@@ -52,7 +52,7 @@ describe('#start()', function() {
     })
     it ('should fail when no URL is specified and tracking is off', function() {
         var options = {
-            trackingLocation: false,
+            trackLocation: false,
             routes: {
                 'news-page': {
                     path: '/news/',
@@ -69,6 +69,6 @@ describe('#start()', function() {
         var component = new RelaksRouteManager(options);
         return expect(component.start())
             .to.eventually.be.rejectedWith(Error)
-            .that.has.property('status', 404);
+            .that.has.property('status', 400);
     })
 })
