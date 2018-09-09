@@ -430,6 +430,7 @@ prototype.apply = function(match, time, sync, replace) {
             _this.context = match.context;
 
             _this.triggerEvent(new RelaksRouteManagerEvent('change', _this));
+            return true;
         });
     });
 };
@@ -897,13 +898,23 @@ prototype.preventDefault = function() {
 };
 
 prototype.postponeDefault = function(promise) {
-    if (!promise || !(promise.then instanceof Function)) {
-        this.decisionPromise = promise;
+    if (process.env.NODE_ENV !== 'production') {
+        if (!promise || !(promise.then instanceof Function)) {
+            console.warn('Non-promise passed to postponeDefault()');
+        }
     }
+    this.decisionPromise = promise;
 };
 
 prototype.waitForDecision = function() {
-    return this.decisionPromise || Promise.resolve();
+    if (!this.decisionPromise) {
+        return Promise.resolve();
+    }
+    return this.decisionPromise.then((decision) => {
+        if (decision === false) {
+            this.defaultPrevented = true;
+        }
+    });
 };
 
 function RelaksRouteManagerError(status, message) {
