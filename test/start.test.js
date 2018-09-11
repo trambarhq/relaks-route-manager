@@ -71,4 +71,119 @@ describe('#start()', function() {
             .to.eventually.be.rejectedWith(Error)
             .that.has.property('status', 400);
     })
+    it ('should not stall if force() is called in handler of beforechange', function() {
+        var options = {
+            useHashFallback: true,
+            routes: {
+                'news-page': {
+                    path: '/news/',
+                    params: { storyID: Number, reactionID: Number },
+                    hash: [ 'S${storyID}', 'R${reactionID}' ],
+                    public: false,
+                },
+                'welcome-page': {
+                    path: '/welcome/',
+                    public: true,
+                },
+            },
+        };
+        location.hash = '#/news/';
+        var component = new RelaksRouteManager(options);
+        var authorizationPromise = ManualPromise();
+        component.addEventListener('beforechange', (evt) => {
+            if (evt.route.public !== true) {
+                evt.postponeDefault(authorizationPromise);
+                component.force('welcome-page');
+            }
+        });
+        return component.start().then(() => {
+            expect(component).to.have.property('name', 'welcome-page');
+            expect(location).to.have.property('hash', '#/news/');
+        });
+    })
+    it ('should not stall if push() is called in handler of beforechange', function() {
+        var options = {
+            useHashFallback: true,
+            routes: {
+                'news-page': {
+                    path: '/news/',
+                    params: { storyID: Number, reactionID: Number },
+                    hash: [ 'S${storyID}', 'R${reactionID}' ],
+                    public: false,
+                },
+                'welcome-page': {
+                    path: '/welcome/',
+                    public: true,
+                },
+            },
+        };
+        location.hash = '#/news/';
+        var component = new RelaksRouteManager(options);
+        var authorizationPromise = ManualPromise();
+        component.addEventListener('beforechange', (evt) => {
+            if (evt.route.public !== true) {
+                evt.postponeDefault(authorizationPromise);
+                component.push('welcome-page');
+            }
+        });
+        return component.start().then(() => {
+            expect(component).to.have.property('name', 'welcome-page');
+            expect(component).to.have.property('url', '/welcome/');
+            expect(location).to.have.property('hash', '#/welcome/');
+        });
+    })
+    it ('should go to the initial page once promise passed to postponeDefault() fulfills', function() {
+        var options = {
+            useHashFallback: true,
+            routes: {
+                'news-page': {
+                    path: '/news/',
+                    params: { storyID: Number, reactionID: Number },
+                    hash: [ 'S${storyID}', 'R${reactionID}' ],
+                    public: false,
+                },
+                'welcome-page': {
+                    path: '/welcome/',
+                    public: true,
+                },
+            },
+        };
+        location.hash = '#/news/';
+        var component = new RelaksRouteManager(options);
+        var authorizationPromise = ManualPromise();
+        component.addEventListener('beforechange', (evt) => {
+            if (evt.route.public !== true) {
+                evt.postponeDefault(authorizationPromise);
+                component.push('welcome-page');
+            }
+        });
+        return component.start().then(() => {
+            expect(component).to.have.property('name', 'welcome-page');
+
+            return TimeoutPromise(50);
+        }).then(() => {
+            authorizationPromise.resolve(true);
+            return TimeoutPromise(50);
+        }).then(() => {
+            expect(component).to.have.property('name', 'news-page');
+            expect(location).to.have.property('hash', '#/news/');
+        });
+    })
 })
+
+function ManualPromise() {
+    var resolveFunc, rejectFunc;
+    var promise = new Promise((resolve, reject) => {
+        resolveFunc = resolve;
+        rejectFunc = reject;
+    });
+    promise.resolve = resolveFunc;
+    promise.reject = rejectFunc;
+    return promise;
+}
+
+function TimeoutPromise(ms) {
+    var promise = ManualPromise();
+    setTimeout(promise.resolve, ms);
+    return promise;
+}

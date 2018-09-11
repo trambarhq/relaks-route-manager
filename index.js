@@ -84,7 +84,20 @@ prototype.start = function(url) {
             url = this.getLocationURL(window.location);
         }
     }
-    return this.change(url, { replace: true });
+    // wait for a change event or the promise returned by change()
+    // need to wait for the second promise because change() could
+    // fail in which case no event would be triggered
+    var _this = this;
+    var handler;
+    var eventPromise = new Promise(function(resolve, reject) {
+        handler = function(evt) {
+            _this.removeEventListener('change', handler);
+            resolve(true);
+        };
+    });
+    this.addEventListener('change', handler);
+    var methodPromise = this.change(url, { replace: true });
+    return Promise.race([ methodPromise, eventPromise ]);
 }
 
 /**
@@ -206,7 +219,7 @@ prototype.change = function(url, options) {
 };
 
 /**
- * Switch to a route without changing the URL
+ * Switch to a route without adding an entry to the history
  *
  * @param  {String} name
  * @param  {Object} params
@@ -239,6 +252,9 @@ prototype.force = function(name, params) {
 prototype.push = function(name, params) {
     try {
         var url = this.find(name, params);
+        if (this.options.useHashFallback) {
+            url = url.substr(1);
+        }
         return this.change(url);
     } catch (err) {
         return Promise.reject(err);
@@ -256,6 +272,9 @@ prototype.push = function(name, params) {
 prototype.replace = function(name, params) {
     try {
         var url = this.find(name, params);
+        if (this.options.useHashFallback) {
+            url = url.substr(1);
+        }
         return this.change(url, { replace: true });
     } catch (err) {
         return Promise.reject(err);
