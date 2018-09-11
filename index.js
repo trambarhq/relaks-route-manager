@@ -13,6 +13,7 @@ function RelaksRouteManager(options) {
     this.params = '';
     this.context = '';
     this.routes = {};
+    this.route = null;
     this.history = [];
     this.startTime = getTime();
     this.listeners = [];
@@ -362,7 +363,7 @@ prototype.match = function(url) {
                 matchTemplate(queryVarValue, queryVarTemplate, types, params);
             }
             matchTemplate(urlParts.hash, routeDef.hash, types, params);
-            return { url: url, name: name, params: params, context: context };
+            return { url: url, name: name, params: params, context: context, route: routeDef };
         }
     }
     return null;
@@ -428,6 +429,7 @@ prototype.apply = function(match, time, sync, replace) {
             _this.name = match.name;
             _this.params = match.params;
             _this.context = match.context;
+            _this.route = match.route;
 
             _this.triggerEvent(new RelaksRouteManagerEvent('change', _this));
             return true;
