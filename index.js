@@ -27,7 +27,7 @@ function RelaksRouteManager(options) {
     this.hash = '';
 
     this.history = [];
-    this.startTime = getTime();
+    this.startTime = getTimeStamp();
     this.queue = [];
 
     for (var name in defaultOptions) {
@@ -221,7 +221,7 @@ prototype.change = function(url, options) {
     try {
         var match = this.match(url);
         var replace = (options) ? options.replace || false : false;
-        var time = getTime();
+        var time = getTimeStamp();
         return this.apply(match, time, true, replace);
     } catch (err) {
         return Promise.reject(err);
@@ -239,7 +239,7 @@ prototype.change = function(url, options) {
 prototype.push = function(name, params) {
     try {
         var match = this.generate(name, params);
-        var time = getTime();
+        var time = getTimeStamp();
         return this.apply(match, time, true, false);
     } catch (err) {
         return Promise.reject(err);
@@ -257,7 +257,7 @@ prototype.push = function(name, params) {
 prototype.replace = function(name, params) {
     try {
         var match = this.generate(name, params);
-        var time = getTime();
+        var time = getTimeStamp();
         return this.apply(match, time, true, true);
     } catch (err) {
         return Promise.reject(err);
@@ -281,7 +281,7 @@ prototype.substitute = function(name, params) {
     var _this = this;
     var match = this.generate(name, params);
     var entry = this.history[this.history.length - 1];
-    var time = (entry) ? entry.time : getTime();
+    var time = (entry) ? entry.time : getTimeStamp();
     if (match.url === undefined && entry) {
         // use URL of route being substituted
         match.url = entry.url;
@@ -710,9 +710,10 @@ prototype.updateHistory = function(entry, replace, restore) {
             var oldEntryIndex = -1;
             var oldEntry = null;
             for (var i = 0; i < this.history.length; i++) {
-                if (this.history[i].time === entry.time) {
+                var otherEntry = this.history[i];
+                if (otherEntry.time === entry.time) {
                     oldEntryIndex = i;
-                    oldEntry = this.history[i];
+                    oldEntry = otherEntry;
                 }
             }
             if (oldEntry) {
@@ -779,7 +780,7 @@ prototype.handleLinkClick = function(evt) {
             if (url) {
                 var match = this.match(url);
                 if (match) {
-                    var time = getTime();
+                    var time = getTimeStamp();
                     evt.preventDefault();
                     evt.stopPropagation();
                     this.apply(match, time, true, false);
@@ -795,7 +796,7 @@ prototype.handleLinkClick = function(evt) {
  * @param  {Event} evt
  */
 prototype.handlePopState = function(evt) {
-    var time = (evt.state) ? evt.state.time : getTime();
+    var time = (evt.state) ? evt.state.time : getTimeStamp();
     var url = this.getLocationURL(window.location);
     if (!(this.match instanceof Function)) {
         console.log('WTF');
@@ -1066,8 +1067,13 @@ function getLink(element) {
     return element;
 }
 
-function getTime() {
-    return (new Date).toISOString();
+var counter = 0;
+
+function getTimeStamp() {
+    var s = (new Date).toISOString();
+    var n = String(counter++);
+    n = '00000000'.substr(n.length) + n;
+    return s + ':' + n;
 }
 
 function assign(dst, src) {
