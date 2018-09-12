@@ -71,7 +71,7 @@ describe('#start()', function() {
             .to.eventually.be.rejectedWith(Error)
             .that.has.property('status', 400);
     })
-    it ('should not stall if force() is called in handler of beforechange', function() {
+    it ('should not stall if substitute() is called in handler of beforechange', function() {
         var options = {
             useHashFallback: true,
             routes: {
@@ -81,8 +81,7 @@ describe('#start()', function() {
                     hash: [ 'S${storyID}', 'R${reactionID}' ],
                     public: false,
                 },
-                'welcome-page': {
-                    path: '/welcome/',
+                'login-page': {
                     public: true,
                 },
             },
@@ -93,43 +92,12 @@ describe('#start()', function() {
         component.addEventListener('beforechange', (evt) => {
             if (evt.route.public !== true) {
                 evt.postponeDefault(authorizationPromise);
-                component.force('welcome-page');
+                evt.substitute('login-page');
             }
         });
         return component.start().then(() => {
-            expect(component).to.have.property('name', 'welcome-page');
+            expect(component).to.have.property('name', 'login-page');
             expect(location).to.have.property('hash', '#/news/');
-        });
-    })
-    it ('should not stall if push() is called in handler of beforechange', function() {
-        var options = {
-            useHashFallback: true,
-            routes: {
-                'news-page': {
-                    path: '/news/',
-                    params: { storyID: Number, reactionID: Number },
-                    hash: [ 'S${storyID}', 'R${reactionID}' ],
-                    public: false,
-                },
-                'welcome-page': {
-                    path: '/welcome/',
-                    public: true,
-                },
-            },
-        };
-        location.hash = '#/news/';
-        var component = new RelaksRouteManager(options);
-        var authorizationPromise = ManualPromise();
-        component.addEventListener('beforechange', (evt) => {
-            if (evt.route.public !== true) {
-                evt.postponeDefault(authorizationPromise);
-                component.push('welcome-page');
-            }
-        });
-        return component.start().then(() => {
-            expect(component).to.have.property('name', 'welcome-page');
-            expect(component).to.have.property('url', '/welcome/');
-            expect(location).to.have.property('hash', '#/welcome/');
         });
     })
     it ('should go to the initial page once promise passed to postponeDefault() fulfills', function() {
@@ -154,7 +122,7 @@ describe('#start()', function() {
         component.addEventListener('beforechange', (evt) => {
             if (evt.route.public !== true) {
                 evt.postponeDefault(authorizationPromise);
-                component.push('welcome-page');
+                evt.substitute('welcome-page');
             }
         });
         return component.start().then(() => {

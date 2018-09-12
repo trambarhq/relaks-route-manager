@@ -32,7 +32,6 @@ function RelaksRouteManager(options) {
     if (options && options.rewrites) {
         this.addRewrites(options.rewrites);
     }
-
     this.handleLinkClick = this.handleLinkClick.bind(this);
     this.handlePopState = this.handlePopState.bind(this);
 }
@@ -219,29 +218,6 @@ prototype.change = function(url, options) {
 };
 
 /**
- * Switch to a route without adding an entry to the history
- *
- * @param  {String} name
- * @param  {Object} params
- *
- * @return {Promise<Boolean>}
- */
-prototype.force = function(name, params) {
-    var _this = this;
-    var context = {};
-    for (var name in this.context) {
-        context[name] = this.context[name];
-    }
-    var match = { name: name, params: params || {}, context: context };
-    return this.load(match).then(() => {
-        _this.name = match.name;
-        _this.params = match.params;
-        _this.context = match.context;
-        _this.triggerEvent(new RelaksRouteManagerEvent('change', _this));
-    });
-};
-
-/**
  * Change the route to the one given, adding to history
  *
  * @param  {String} name
@@ -288,19 +264,16 @@ prototype.replace = function(name, params) {
  * @param  {Object} params
  * @param  {Object|undefined} newContext
  *
- * @return {String}
+ * @return {String|undefined}
  */
 prototype.find = function(name, params, newContext) {
     var urlParts = this.fill(name, params || {});
+    if (!urlParts) {
+        return;
+    }
     var context = this.context;
     if (newContext) {
-        context = {};
-        for (var name in this.context) {
-            context[name] = this.context[name];
-        }
-        for (var name in newContext) {
-            context[name] = newContext[name];
-        }
+        context = assign({}, this.context, newContext);
     } else {
         context = this.context;
     }
@@ -402,58 +375,79 @@ prototype.match = function(url) {
 prototype.apply = function(match, time, sync, replace) {
     var _this = this;
     var confirmationEvent = new RelaksRouteManagerEvent('beforechange', this, match);
+    var subEntry;
+    confirmationEvent.substitute = function(name, params) {
+        // duplicate the context object, just in case load() changes it
+        var context = assign({}, match.context);
+        var url = _this.find(name, params)
+        if (!url) {
+            // use URL of the intended route
+            url = match.url;
+        }
+        var sub = { url: url, name: name, params: params || {}, context: context };
+        return _this.load(sub).then(() => {
+            subEntry = {
+                url: sub.url,
+                name: sub.name,
+                params: sub.params,
+                context: sub.context,
+                time: time
+            };
+            _this.updateHistory(subEntry, replace);
+            if (sync) {
+                _this.setLocationURL(subEntry.url, { time: time }, replace);
+            }
+            _this.finalize(subEntry);
+        });
+    };
     this.triggerEvent(confirmationEvent);
     return confirmationEvent.waitForDecision().then(function() {
         if (confirmationEvent.defaultPrevented) {
             return false;
         }
         return _this.load(match).then(function() {
-            if (time >= _this.startTime) {
-                if (!replace) {
-                    // see if we're going backward
-                    var index = -1;
-                    for (var i = 0; i < _this.history.length; i++) {
-                        if (_this.history[i].time === time) {
-                            index = i;
-                        }
-                    }
-                    if (index !== -1) {
-                        // remove entry and those after it
-                        _this.history.splice(index);
-                    }
-                }
-            } else {
-                // going into history prior to page load
-                // remember the time forward movement from deep into the past
-                // works correctly
-                _this.history = [];
-                _this.startTime = time;
-            }
-            var entry =  {
+            var entry = {
                 url: match.url,
                 name: match.name,
                 params: match.params,
                 context: match.context,
                 time: time
             };
-            if (replace && _this.history.length > 0) {
-                _this.history[_this.history.length - 1] = entry;
+            if (subEntry) {
+                // a substitution occurred--go to the route if the substitute
+                // at the top of the history stack
+                var subEntryIndex = _this.history.indexOf(subEntry);
+                if (subEntryIndex === _this.history.length - 1) {
+                    if (entry.url !== subEntry.url) {
+                        _this.setLocationURL(entry.url, { time: time }, true);
+                    }
+                    _this.finalize(entry);
+                }
+                // replace the substitute entry with entry of the actual route
+                // so that clicking the back button sends the user to the
+                // intended page and not the substitute page
+                if (subEntryIndex !== -1) {
+                    _this.history[subEntryIndex] = entry;
+                }
             } else {
-                _this.history.push(entry);
+                entry = _this.updateHistory(entry, replace, true);
+                if (sync) {
+                    _this.setLocationURL(entry.url, { time: time }, replace);
+                }
+                _this.finalize(entry);
             }
-            if (sync) {
-                _this.setLocationURL(match.url, { time: time }, replace);
-            }
-            _this.url = match.url;
-            _this.name = match.name;
-            _this.params = match.params;
-            _this.context = match.context;
-            _this.route = match.route;
-
-            _this.triggerEvent(new RelaksRouteManagerEvent('change', _this));
             return true;
         });
     });
+};
+
+prototype.finalize = function(entry) {
+    this.url = entry.url;
+    this.name = entry.name;
+    this.params = entry.params;
+    this.context = entry.context;
+    this.route = this.routes[entry.name];
+    this.triggerEvent(new RelaksRouteManagerEvent('change', this));
 };
 
 /**
@@ -462,12 +456,15 @@ prototype.apply = function(match, time, sync, replace) {
  * @param  {String} name
  * @param  {Object} params
  *
- * @return {Object}
+ * @return {Object|null}
  */
 prototype.fill = function(name, params) {
     var routeDef = this.routes[name];
     if (!routeDef) {
         throw new RelaksRouteManagerError(500, 'No route by that name: ' + name);
+    }
+    if (routeDef.path === '*' || typeof(routeDef.path) !== 'string') {
+        return null;
     }
     var types = routeDef.params;
     var path = fillTemplate(routeDef.path, types, params, true);
@@ -584,6 +581,46 @@ prototype.getLocationURL = function(location) {
         return location.pathname + location.search + location.hash;
     }
 };
+
+prototype.updateHistory = function(entry, replace, restore) {
+    if (entry.time >= this.startTime) {
+        if (!replace) {
+            // see if we're going backward
+            var oldEntryIndex = -1;
+            var oldEntry = null;
+            for (var i = 0; i < this.history.length; i++) {
+                if (this.history[i].time === entry.time) {
+                    oldEntryIndex = i;
+                    oldEntry = this.history[i];
+                }
+            }
+            if (oldEntry) {
+                // no, going backward
+                // remove entry and those after it
+                this.history.splice(oldEntryIndex);
+
+                if (restore) {
+                    // use what was stored in history instead of the properties
+                    // extracted from the URL; the two objects should be
+                    // identical unless this.history was altered
+                    entry = oldEntry;
+                }
+            }
+        }
+    } else {
+        // going into history prior to page load
+        // remember the time forward movement from deep into the past
+        // works correctly
+        this.history = [];
+        this.startTime = entry.time;
+    }
+    if (replace && this.history.length > 0) {
+        this.history[this.history.length - 1] = entry;
+    } else {
+        this.history.push(entry);
+    }
+    return entry;
+}
 
 prototype.setLocationURL = function(url, state, replace) {
     if (this.options.trackLocation) {
@@ -741,9 +778,7 @@ function matchTemplate(urlPart, template, types, params, isPath) {
                 }
             }
         }
-        for (var name in values) {
-            params[name] = values[name];
-        }
+        assign(params, values);
         return true;
     }
     return false;
@@ -902,12 +937,20 @@ function getTime() {
     return (new Date).toISOString();
 }
 
+function assign(dst, src) {
+    for (var i = 1; i < arguments.length; i++) {
+        src = arguments[i];
+        for (var key in src) {
+            dst[key] = src[key];
+        }
+    }
+    return dst;
+}
+
 function RelaksRouteManagerEvent(type, target, props) {
     this.type = type;
     this.target = target;
-    for (var name in props) {
-        this[name] = props[name];
-    }
+    assign(this, props);
     this.defaultPrevented = false;
     this.decisionPromise = null;
 }
