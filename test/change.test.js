@@ -206,6 +206,60 @@ describe('#change()', function() {
             });
         });
     })
+    it ('should not ignore multiple changes that have piled up due to postponeDefault()', function() {
+        var options = {
+            routes: {
+                'news-page': {
+                    path: '/news/',
+                    params: { storyID: Number, reactionID: Number },
+                    hash: [ 'S${storyID}', 'R${reactionID}' ],
+                    public: false,
+                },
+                'story-page': {
+                    path: '/story/${id}',
+                    params: { id: Number },
+                    public: false,
+                },
+                'welcome-page': {
+                    path: '/welcome',
+                    public: true,
+                }
+            },
+        };
+
+        var component = new RelaksRouteManager(options);
+        var authorizationPromise = ManualPromise();
+        var authorized = false;
+        var changeCount = 0;
+        component.addEventListener('beforechange', (evt) => {
+            if (!evt.route.public) {
+                if (!authorized) {
+                    evt.postponeDefault(authorizationPromise);
+                }
+            }
+        });
+        component.addEventListener('change', (evt) => {
+            changeCount++;
+        });
+
+        return component.change('/welcome').then(() => {
+            for (var i = 1; i <= 5; i++) {
+                setTimeout(() => {
+                    component.change('/story/' + i);
+                }, i * 25);
+            }
+            setTimeout(() => {
+                component.change('/news/');
+            }, i * 25 + 75);
+            setTimeout(authorizationPromise.resolve, i * 25 + 200);
+            return authorizationPromise;
+        }).then(() => {
+            return TimeoutPromise(100);
+        }).then(() => {
+            expect(component.history).to.have.length(2);
+            expect(changeCount).to.equal(2);
+        });
+    })
 })
 
 function ManualPromise() {
@@ -216,5 +270,11 @@ function ManualPromise() {
     });
     promise.resolve = resolveFunc;
     promise.reject = rejectFunc;
+    return promise;
+}
+
+function TimeoutPromise(ms) {
+    var promise = ManualPromise();
+    setTimeout(promise.resolve, ms);
     return promise;
 }

@@ -32,6 +32,7 @@ function RelaksRouteManager(options) {
     if (options && options.rewrites) {
         this.addRewrites(options.rewrites);
     }
+    this.queue = [];
     this.handleLinkClick = this.handleLinkClick.bind(this);
     this.handlePopState = this.handlePopState.bind(this);
 }
@@ -442,6 +443,9 @@ prototype.apply = function(match, time, sync, replace) {
         if (confirmationEvent.defaultPrevented) {
             return false;
         }
+        // add the change to the queue, so we'd notice when multiple changes are
+        // all waiting for the same promise to fulfill
+        _this.queue.push(match);
         return _this.load(match).then(function() {
             var entry = {
                 url: match.url,
@@ -467,11 +471,16 @@ prototype.apply = function(match, time, sync, replace) {
                     _this.history[subEntryIndex] = entry;
                 }
             } else {
+                // ignore change unless it's at the end of the queue
+                if (_this.queue[_this.queue.length - 1] !== match) {
+                    return false;
+                }
                 entry = _this.updateHistory(entry, replace, true);
                 if (sync) {
                     _this.setLocationURL(entry.url, { time: time }, replace);
                 }
                 _this.finalize(entry);
+                _this.queue.splice(0);
             }
             return true;
         });
