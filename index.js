@@ -8,17 +8,28 @@ var defaultOptions = {
 
 function RelaksRouteManager(options) {
     this.active = false;
-    this.url = '';
+    this.options = {};
+    this.listeners = [];
+    this.routes = {};
+    this.rewrites = [];
+
+    // properties of the current route
     this.name = '';
     this.params = '';
     this.context = '';
-    this.routes = {};
     this.route = null;
+
+    // properties of the current URL
+    this.url = '';
+    this.path = '';
+    this.query = {};
+    this.search = '';
+    this.hash = '';
+
     this.history = [];
     this.startTime = getTime();
-    this.listeners = [];
-    this.options = {};
-    this.rewrites = [];
+    this.queue = [];
+
     for (var name in defaultOptions) {
         if (options && options[name] !== undefined) {
             this.options[name] = options[name];
@@ -32,7 +43,6 @@ function RelaksRouteManager(options) {
     if (options && options.rewrites) {
         this.addRewrites(options.rewrites);
     }
-    this.queue = [];
     this.handleLinkClick = this.handleLinkClick.bind(this);
     this.handlePopState = this.handlePopState.bind(this);
 }
@@ -228,11 +238,9 @@ prototype.change = function(url, options) {
  */
 prototype.push = function(name, params) {
     try {
-        var url = this.find(name, params);
-        if (this.options.useHashFallback) {
-            url = url.substr(1);
-        }
-        return this.change(url);
+        var match = this.generate(name, params);
+        var time = getTime();
+        return this.apply(match, time, true, false);
     } catch (err) {
         return Promise.reject(err);
     }
@@ -248,11 +256,9 @@ prototype.push = function(name, params) {
  */
 prototype.replace = function(name, params) {
     try {
-        var url = this.find(name, params);
-        if (this.options.useHashFallback) {
-            url = url.substr(1);
-        }
-        return this.change(url, { replace: true });
+        var match = this.generate(name, params);
+        var time = getTime();
+        return this.apply(match, time, true, true);
     } catch (err) {
         return Promise.reject(err);
     }
@@ -273,19 +279,42 @@ prototype.substitute = function(name, params) {
         }
     }
     var _this = this;
-    var context = assign({}, this.context);
+    var match = this.generate(name, params);
     var entry = this.history[this.history.length - 1];
     var time = (entry) ? entry.time : getTime();
-    var url = this.find(name, params)
-    if (!url) {
-        url = this.url;
+    if (match.url === undefined && entry) {
+        // use URL of route being substituted
+        match.url = entry.url;
+        match.path = entry.path;
+        match.query = entry.query;
+        match.search = entry.search;
+        match.hash = entry.hash;
     }
-    var match = { url: url, name: name, params: params || {}, context: context };
     return this.load(match).then(() => {
-        if (url) {
-            _this.setLocationURL(url, { time: time }, true);
+        if (match.url !== this.url) {
+            _this.setLocationURL(match.url, { time: time }, true);
         }
         _this.finalize(match);
+    });
+};
+
+/**
+ * It should restore a route that has been substituted
+ *
+ * @return {Promise<Boolean>}
+ */
+prototype.restore = function() {
+    var _this = this;
+    var entry = this.history[this.history.length - 1];
+    if (!entry) {
+        return Promise.resolve(false);
+    }
+    return this.load(entry).then(() => {
+        if (entry.url !== this.url) {
+            _this.setLocationURL(entry.url, { time: entry.time }, true);
+        }
+        _this.finalize(entry);
+        return true;
     });
 };
 
@@ -299,21 +328,12 @@ prototype.substitute = function(name, params) {
  * @return {String|undefined}
  */
 prototype.find = function(name, params, newContext) {
-    var urlParts = this.fill(name, params || {});
-    if (!urlParts) {
-        return;
-    }
-    var context = this.context;
-    if (newContext) {
-        context = assign({}, this.context, newContext);
-    } else {
-        context = this.context;
-    }
-    this.rebase('to', urlParts);
-    this.rewrite('to', urlParts, context);
-    var url = composeURL(urlParts);
+    var match = this.generate(name, params, newContext);
+    var url = match.url;
     if (this.options.useHashFallback) {
-        url = '#' + url;
+        if (url != undefined) {
+            url = '#' + url;
+        }
     }
     return url;
 };
@@ -387,10 +407,53 @@ prototype.match = function(url) {
                 matchTemplate(queryVarValue, queryVarTemplate, types, params);
             }
             matchTemplate(urlParts.hash, routeDef.hash, types, params);
-            return { url: url, name: name, params: params, context: context, route: routeDef };
+            return {
+                name: name,
+                params: params,
+                context: context,
+                route: routeDef,
+                url: url,
+                path: urlParts.path,
+                query: urlParts.query,
+                search: urlParts.search,
+                hash: urlParts.hash,
+            };
         }
     }
     return null;
+};
+
+/**
+ * Generate a match object given name a params and possibly a context
+ *
+ * @param  {String} name
+ * @param  {Object} params
+ * @param  {Object|undefined} newContext
+ *
+ * @return {String|undefined}
+ */
+prototype.generate = function(name, params, newContext) {
+    var urlParts = this.fill(name, params || {});
+    var routeDef = this.routes[name];
+    var context = this.context;
+    if (newContext) {
+        context = assign({}, this.context, newContext);
+    } else {
+        context = this.context;
+    }
+    var match = {
+        name: name,
+        params: params,
+        context: context,
+        route: routeDef,
+    };
+    if (urlParts) {
+        this.rebase('to', urlParts);
+        this.rewrite('to', urlParts, context);
+        match.url = composeURL(urlParts);
+        assign(match, urlParts);
+    }
+    return match;
 };
 
 /**
@@ -411,20 +474,17 @@ prototype.apply = function(match, time, sync, replace) {
     confirmationEvent.substitute = function(name, params) {
         // duplicate the context object, just in case load() changes it
         var context = assign({}, match.context);
-        var url = _this.find(name, params)
-        if (!url) {
+        var sub = _this.generate(name, params);
+        if (sub.url === undefined) {
             // use URL of the intended route
-            url = match.url;
+            sub.url = match.url;
+            sub.path = match.path;
+            sub.query = match.query;
+            sub.search = match.search;
+            sub.hash = match.hash;
         }
-        var sub = { url: url, name: name, params: params || {}, context: context };
         return _this.load(sub).then(() => {
-            subEntry = {
-                url: sub.url,
-                name: sub.name,
-                params: sub.params,
-                context: sub.context,
-                time: time
-            };
+            subEntry = assign({ time }, sub);
             _this.updateHistory(subEntry, replace);
             if (sync) {
                 _this.setLocationURL(subEntry.url, { time: time }, replace);
@@ -447,13 +507,7 @@ prototype.apply = function(match, time, sync, replace) {
         // all waiting for the same promise to fulfill
         _this.queue.push(match);
         return _this.load(match).then(function() {
-            var entry = {
-                url: match.url,
-                name: match.name,
-                params: match.params,
-                context: match.context,
-                time: time
-            };
+            var entry = assign({ time: time }, match);
             if (subEntry) {
                 // a substitution occurred--go to the route if the substitute
                 // at the top of the history stack
@@ -487,12 +541,13 @@ prototype.apply = function(match, time, sync, replace) {
     });
 };
 
+/**
+ * Set properties of component and fire change event
+ *
+ * @param  {Object} entry
+ */
 prototype.finalize = function(entry) {
-    this.url = entry.url;
-    this.name = entry.name;
-    this.params = entry.params;
-    this.context = entry.context;
-    this.route = this.routes[entry.name];
+    assign(this, entry);
     this.triggerEvent(new RelaksRouteManagerEvent('change', this));
 };
 
@@ -523,7 +578,9 @@ prototype.fill = function(name, params) {
             query[queryVarName] = queryVarValue;
         }
     }
-    return { path: path, hash: hash, query: query };
+    var queryString = composeQueryString(query);
+    var search = (queryString) ? '?' + queryString : '';
+    return { path: path, query: query, search: search, hash: hash };
 };
 
 /**
@@ -580,6 +637,13 @@ prototype.rebase = function(direction, urlParts) {
     return false;
 };
 
+/**
+ * Call a route's load() function to load code needed (possibly asynchronously)
+ *
+ * @param  {Object} match
+ *
+ * @return {Promise}
+ */
 prototype.load = function(match) {
     try {
         var result;
@@ -628,6 +692,17 @@ prototype.getLocationURL = function(location) {
     }
 };
 
+/**
+ * Add or remove entries from history, depending on the entry's timestamp.
+ * If the an entry with a matching time is found, return it when restore is
+ * specified.
+ *
+ * @param  {Object} entry
+ * @param  {Boolean} replace
+ * @param  {Boolean} restore
+ *
+ * @return {Object}
+ */
 prototype.updateHistory = function(entry, replace, restore) {
     if (entry.time >= this.startTime) {
         if (!replace) {
@@ -668,6 +743,13 @@ prototype.updateHistory = function(entry, replace, restore) {
     return entry;
 }
 
+/**
+ * Set the browser's address bar when trackLocation is true
+ *
+ * @param  {String} url
+ * @param  {Object} state
+ * @param  {Boolean} replace
+ */
 prototype.setLocationURL = function(url, state, replace) {
     if (this.options.trackLocation) {
         var currentURL = this.getLocationURL(location);
@@ -715,6 +797,9 @@ prototype.handleLinkClick = function(evt) {
 prototype.handlePopState = function(evt) {
     var time = (evt.state) ? evt.state.time : getTime();
     var url = this.getLocationURL(window.location);
+    if (!(this.match instanceof Function)) {
+        console.log('WTF');
+    }
     var match = this.match(url);
     var promise = this.apply(match, time, false, false);
 
@@ -925,11 +1010,13 @@ function parseURL(url) {
     }
     var query = {};
     var queryIndex = path.indexOf('?');
+    var search = '';
     if (queryIndex !== -1) {
-        query = parseQueryString(path.substr(queryIndex + 1));
+        search = path.substr(queryIndex);
+        query = parseQueryString(search.substr(1));
         path = path.substr(0, queryIndex);
     }
-    return { path: path, query: query, hash: hash };
+    return { path: path, query: query, search: search, hash: hash };
 }
 
 function parseQueryString(queryString) {

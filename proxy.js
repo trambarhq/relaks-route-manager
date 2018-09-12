@@ -1,9 +1,15 @@
 function RelaksRouteManagerProxy(routeManager) {
     this.routeManager = routeManager;
-    this.name = routeManager.state.name;
-    this.params = routeManager.state.params;
-    this.context = routeManager.state.context;
-    this.history = routeManager.state.history;
+    this.name = routeManager.name;
+    this.params = routeManager.params;
+    this.context = routeManager.context;
+    this.history = routeManager.history;
+
+    this.url = routeManager.url;
+    this.path = routeManager.path;
+    this.query = routeManager.query;
+    this.search = routeManager.search;
+    this.hash = routeManager.hash;
 }
 
 var prototype = RelaksRouteManagerProxy.prototype;
@@ -14,6 +20,14 @@ prototype.push = function(name, params) {
 
 prototype.replace = function(name, params) {
     return this.routeManager.replace(name, params);
+};
+
+prototype.substitute = function(name, params) {
+    return this.routeManager.substitute(name, params);
+};
+
+prototype.restore = function() {
+    return this.routeManager.restore();
 };
 
 prototype.change = function(url, options) {
