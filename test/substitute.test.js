@@ -232,7 +232,7 @@ describe('#evt.substitute()', function() {
         component.activate();
         return component.replace('welcome-page').then(() => {
             component.push('news-page');
-            return TimeoutPromise(10);
+            return TimeoutPromise(50);
         }).then(() => {
             expect(component).to.have.property('name', 'login-page');
             expect(component).to.have.property('url', '/login/');
@@ -243,7 +243,7 @@ describe('#evt.substitute()', function() {
             expect(component).to.have.property('url', '/privacy/');
             authorized = true;
             authorizationPromise.resolve();
-            return TimeoutPromise(100);
+            return TimeoutPromise(50);
         }).then(() => {
             expect(component).to.have.property('name', 'privacy-page');
             expect(component).to.have.property('url', '/privacy/');

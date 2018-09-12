@@ -266,6 +266,11 @@ prototype.replace = function(name, params) {
  * @return {Promise<Boolean>}
  */
 prototype.substitute = function(name, params) {
+    if (process.env.NODE_ENV !== 'production') {
+        if (this.insideBeforeChangeHandler) {
+            console.warn('Calling substitute() inside a beforechange handler. Perhaps you mean to call evt.substitute()?')
+        }
+    }
     var _this = this;
     var context = assign({}, this.context);
     var entry = this.history[this.history.length - 1];
@@ -426,7 +431,13 @@ prototype.apply = function(match, time, sync, replace) {
             _this.finalize(subEntry);
         });
     };
+    if (process.env.NODE_ENV !== 'production') {
+        this.insideBeforeChangeHandler = true;
+    }
     this.triggerEvent(confirmationEvent);
+    if (process.env.NODE_ENV !== 'production') {
+        this.insideBeforeChangeHandler = false;
+    }
     return confirmationEvent.waitForDecision().then(function() {
         if (confirmationEvent.defaultPrevented) {
             return false;
