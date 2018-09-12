@@ -258,6 +258,32 @@ prototype.replace = function(name, params) {
 };
 
 /**
+ * Switch to a route without adding an entry to the history
+ *
+ * @param  {String} name
+ * @param  {Object} params
+ *
+ * @return {Promise<Boolean>}
+ */
+prototype.substitute = function(name, params) {
+    var _this = this;
+    var context = assign({}, this.context);
+    var entry = this.history[this.history.length - 1];
+    var time = (entry) ? entry.time : getTime();
+    var url = this.find(name, params)
+    if (!url) {
+        url = this.url;
+    }
+    var match = { url: url, name: name, params: params || {}, context: context };
+    return this.load(match).then(() => {
+        if (url) {
+            _this.setLocationURL(url, { time: time }, true);
+        }
+        _this.finalize(match);
+    });
+};
+
+/**
  * Get a URL for a route for the parameters given
  *
  * @param  {String} name
