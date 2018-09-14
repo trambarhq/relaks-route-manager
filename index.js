@@ -1,3 +1,6 @@
+var EventEmitter = require('relaks-event-emitter');
+var GenericEvent = EventEmitter.GenericEvent;
+
 var SSR = (typeof window !== 'object');
 var defaultOptions = {
     useHashFallback: false,
@@ -7,9 +10,9 @@ var defaultOptions = {
 };
 
 function RelaksRouteManager(options) {
+    EventEmitter.call(this);
     this.active = false;
     this.options = {};
-    this.listeners = [];
     this.routes = {};
     this.rewrites = [];
 
@@ -47,7 +50,7 @@ function RelaksRouteManager(options) {
     this.handlePopState = this.handlePopState.bind(this);
 }
 
-var prototype = RelaksRouteManager.prototype;
+var prototype = RelaksRouteManager.prototype = Object.create(EventEmitter.prototype)
 
 /**
  * Activate the component
@@ -109,47 +112,6 @@ prototype.start = function(url) {
     var methodPromise = this.change(url, { replace: true });
     return Promise.race([ methodPromise, eventPromise ]);
 }
-
-/**
- * Attach an event handler
- *
- * @param  {String} type
- * @param  {Function} handler
- */
-prototype.addEventListener = function(type, handler) {
-    this.listeners.push({ type: type,  handler: handler });
-};
-
-/**
- * Remove an event handler
- *
- * @param  {String} type
- * @param  {Function} handler
- */
-prototype.removeEventListener = function(type, handler) {
-    this.listeners = this.listeners.filter(function(listener) {
-        return !(listener.type === type && listener.handler === handler);
-    })
-};
-
-/**
- * Send event to event listeners, return true or false depending on whether
- * there were any listeners
- *
- * @param  {RelaksDjangoDataSourceEvent} evt
- *
- * @return {Boolean}
- */
-prototype.triggerEvent = function(evt) {
-    var fired = false;
-    this.listeners.forEach(function(listener) {
-        if (listener.type === evt.type && listener.handler) {
-            fired = true;
-            listener.handler(evt);
-        }
-    });
-    return fired;
-};
 
 /**
  * Add routes
@@ -798,9 +760,6 @@ prototype.handleLinkClick = function(evt) {
 prototype.handlePopState = function(evt) {
     var time = (evt.state) ? evt.state.time : getTimeStamp();
     var url = this.getLocationURL(window.location);
-    if (!(this.match instanceof Function)) {
-        console.log('WTF');
-    }
     var match = this.match(url);
     var promise = this.apply(match, time, false, false);
 
@@ -977,7 +936,7 @@ function stringifyValue(value, type) {
     } else if (type === Number) {
         return String(value);
     } else if (type === Boolean) {
-        return (value) ? '0' : '1';
+        return (value) ? '1' : '0';
     } else if (type instanceof Object) {
         if (type.to) {
             return type.to(value);
@@ -1087,38 +1046,10 @@ function assign(dst, src) {
 }
 
 function RelaksRouteManagerEvent(type, target, props) {
-    this.type = type;
-    this.target = target;
-    assign(this, props);
-    this.defaultPrevented = false;
-    this.decisionPromise = null;
+    GenericEvent.call(this, type, target, props);
 }
 
-var prototype = RelaksRouteManagerEvent.prototype;
-
-prototype.preventDefault = function() {
-    this.defaultPrevented = true;
-};
-
-prototype.postponeDefault = function(promise) {
-    if (process.env.NODE_ENV !== 'production') {
-        if (!promise || !(promise.then instanceof Function)) {
-            console.warn('Non-promise passed to postponeDefault()');
-        }
-    }
-    this.decisionPromise = promise;
-};
-
-prototype.waitForDecision = function() {
-    if (!this.decisionPromise) {
-        return Promise.resolve();
-    }
-    return this.decisionPromise.then((decision) => {
-        if (decision === false) {
-            this.defaultPrevented = true;
-        }
-    });
-};
+RelaksRouteManagerEvent.prototype = Object.create(GenericEvent.prototype)
 
 function RelaksRouteManagerError(status, message) {
     this.status = status;
