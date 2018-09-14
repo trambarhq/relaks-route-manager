@@ -19,7 +19,7 @@ function RelaksRouteManager(options) {
     // properties of the current route
     this.name = '';
     this.params = '';
-    this.context = '';
+    this.context = {};
     this.route = null;
 
     // properties of the current URL
@@ -252,7 +252,7 @@ prototype.substitute = function(name, params) {
         match.search = entry.search;
         match.hash = entry.hash;
     }
-    return this.load(match).then(() => {
+    return this.load(match).then(function() {
         if (match.url !== this.url) {
             _this.setLocationURL(match.url, { time: time }, true);
         }
@@ -271,7 +271,7 @@ prototype.restore = function() {
     if (!entry) {
         return Promise.resolve(false);
     }
-    return this.load(entry).then(() => {
+    return this.load(entry).then(function() {
         if (entry.url !== this.url) {
             _this.setLocationURL(entry.url, { time: entry.time }, true);
         }
@@ -397,23 +397,19 @@ prototype.match = function(url) {
 prototype.generate = function(name, params, newContext) {
     var urlParts = this.fill(name, params || {});
     var routeDef = this.routes[name];
-    var context = this.context;
-    if (newContext) {
-        context = assign({}, this.context, newContext);
-    } else {
-        context = this.context;
-    }
+    var context = assign({}, this.context, newContext);
     var match = {
         name: name,
-        params: params,
+        params: params || {},
         context: context,
         route: routeDef,
     };
     if (urlParts) {
+        // copy the URL parts first, before changing them in rebase()/rewrite()
+        assign(match, urlParts);
         this.rebase('to', urlParts);
         this.rewrite('to', urlParts, context);
         match.url = composeURL(urlParts);
-        assign(match, urlParts);
     }
     return match;
 };
@@ -434,9 +430,7 @@ prototype.apply = function(match, time, sync, replace) {
     var confirmationEvent = new RelaksRouteManagerEvent('beforechange', this, match);
     var subEntry;
     confirmationEvent.substitute = function(name, params) {
-        // duplicate the context object, just in case load() changes it
-        var context = assign({}, match.context);
-        var sub = _this.generate(name, params);
+        var sub = _this.generate(name, params, match.context);
         if (sub.url === undefined) {
             // use URL of the intended route
             sub.url = match.url;
@@ -445,8 +439,8 @@ prototype.apply = function(match, time, sync, replace) {
             sub.search = match.search;
             sub.hash = match.hash;
         }
-        return _this.load(sub).then(() => {
-            subEntry = assign({ time }, sub);
+        return _this.load(sub).then(function() {
+            subEntry = assign({ time: time }, sub);
             _this.updateHistory(subEntry, replace);
             if (sync) {
                 _this.setLocationURL(subEntry.url, { time: time }, replace);
