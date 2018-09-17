@@ -40,11 +40,27 @@ function RelaksRouteManager(options) {
             this.options[name] = defaultOptions[name];
         }
     }
-    if (options && options.routes) {
-        this.addRoutes(options.routes);
-    }
-    if (options && options.rewrites) {
-        this.addRewrites(options.rewrites);
+    if (options) {
+        if (options.basePath) {
+            var basePathRewrite = {
+                from: function(urlParts, context) {
+                    var newPath = getRelativePath(options.basePath, urlParts.path);
+                    if (newPath) {
+                        urlParts.path = newPath;
+                    }
+                },
+                to: function(urlParts, context) {
+                    urlParts.path = options.basePath + urlParts.path;
+                },
+            };
+            this.addRewrites([ basePathRewrite ]);
+        }
+        if (options.routes) {
+            this.addRoutes(options.routes);
+        }
+        if (options.rewrites) {
+            this.addRewrites(options.rewrites);
+        }
     }
     this.handleLinkClick = this.handleLinkClick.bind(this);
     this.handlePopState = this.handlePopState.bind(this);
@@ -253,7 +269,7 @@ prototype.substitute = function(name, params) {
         match.hash = entry.hash;
     }
     return this.load(match).then(function() {
-        if (match.url !== this.url) {
+        if (match.url !== _this.url) {
             _this.setLocationURL(match.url, { time: time }, true);
         }
         _this.finalize(match);
@@ -272,7 +288,7 @@ prototype.restore = function() {
         return Promise.resolve(false);
     }
     return this.load(entry).then(function() {
-        if (entry.url !== this.url) {
+        if (entry.url !== _this.url) {
             _this.setLocationURL(entry.url, { time: entry.time }, true);
         }
         _this.finalize(entry);
@@ -349,11 +365,6 @@ prototype.match = function(url) {
     var context = {};
     this.rewrite('from', urlParts, context);
 
-    // remove base path
-    if (!this.rebase('from', urlParts)) {
-        return null;
-    }
-
     // look for matching route
     var params = {};
     var routes = this.routes;
@@ -405,9 +416,8 @@ prototype.generate = function(name, params, newContext) {
         route: routeDef,
     };
     if (urlParts) {
-        // copy the URL parts first, before changing them in rebase()/rewrite()
+        // copy the URL parts first, before changing them in rewrite()
         assign(match, urlParts);
-        this.rebase('to', urlParts);
         this.rewrite('to', urlParts, context);
         match.url = composeURL(urlParts);
     }
@@ -549,48 +559,23 @@ prototype.fill = function(name, params) {
 prototype.rewrite = function(direction, urlParts, context) {
     if (direction === 'from') {
         for (var i = 0; i < this.rewrites.length; i++) {
-            var from = this.rewrites[i].from;
-            if (from) {
-                if (from(urlParts, context) === false) {
+            var rewrite = this.rewrites[i];
+            if (rewrite.from) {
+                if (rewrite.from(urlParts, context) === false) {
                     break;
                 }
             }
         }
     } else if (direction === 'to') {
         for (var i = this.rewrites.length - 1; i >= 0; i--) {
-            var to = this.rewrites[i].to;
-            if (to) {
-                if (to(urlParts, context) === false) {
+            var rewrite = this.rewrites[i];
+            if (rewrite.to) {
+                if (rewrite.to(urlParts, context) === false) {
                     break;
                 }
             }
         }
     }
-};
-
-/**
- * Add or remove basePath from a URL's path part. Return false if it can't be done.
- *
- * @param  {String} direction
- * @param  {Object} urlParts
- *
- * @return {Boolean}
- */
-prototype.rebase = function(direction, urlParts) {
-    var basePath = this.options.basePath;
-    if (direction === 'from') {
-        var newPath = getRelativePath(basePath, urlParts.path);
-        if (newPath) {
-            urlParts.path = newPath;
-            return true;
-        }
-    } else if (direction === 'to') {
-        if (basePath) {
-            urlParts.path = basePath + urlParts.path;
-        }
-        return true;
-    }
-    return false;
 };
 
 /**

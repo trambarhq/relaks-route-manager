@@ -127,9 +127,9 @@ describe('#find()', function() {
             basePath: '/forum'
         };
         var component = new RelaksRouteManager(options);
-        return component.change('/https/example.net/forum/story/5').then(() => {
+        return component.change('/forum/https/example.net/story/5').then(() => {
             var url = component.find('story-page', { id: 747 });
-            expect(url).to.equal('/https/example.net/forum/story/747');
+            expect(url).to.equal('/forum/https/example.net/story/747');
         });
     })
     it ('should throw where there is no route by that name', function() {
