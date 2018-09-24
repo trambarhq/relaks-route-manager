@@ -6,12 +6,14 @@ var defaultOptions = {
     useHashFallback: false,
     trackLinks: (SSR) ? false : true,
     trackLocation: (SSR) ? false : true,
+    preloadingDelay: NaN,
     basePath: '',
 };
 
 function RelaksRouteManager(options) {
     EventEmitter.call(this);
     this.active = false;
+    this.preloaded = false;
     this.options = {};
     this.routes = {};
     this.rewrites = [];
@@ -80,6 +82,19 @@ prototype.activate = function() {
             window.addEventListener('popstate', this.handlePopState);
         }
         this.active = true;
+
+        if (!this.preloaded) {
+            var delay = this.options.preloadingDelay;
+            if (delay) {
+                var _this = this;
+                setTimeout(function() {
+                    if (_this.active && !_this.preloaded) {
+                        _this.preload();
+                        _this.preloaded = true;
+                    }
+                }, delay);
+            }
+        }
     }
 };
 
@@ -598,6 +613,18 @@ prototype.load = function(match) {
         return Promise.resolve(result);
     } catch (err) {
         return Promise.reject(err);
+    }
+};
+
+/**
+ * Call the load function of every route
+ */
+prototype.preload = function() {
+    for (var name in this.routes) {
+        var routeDef = this.routes[name];
+        if (routeDef && routeDef.load) {
+            routeDef.load({}, {});
+        }
     }
 };
 
