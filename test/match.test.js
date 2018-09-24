@@ -1,7 +1,7 @@
 import { expect } from 'chai';
 import RelaksRouteManager from '../index';
 
-describe('#match', function() {
+describe('#match()', function() {
     it ('should find a matching route', function() {
         var options = {
             routes: {
@@ -123,6 +123,38 @@ describe('#match', function() {
         var component = new RelaksRouteManager(options);
         var match = component.match('/nowhere/');
         expect(match).to.have.property('name').that.equals('error-page');
+    })
+    it ('should capture empty string', function() {
+        var options = {
+            routes: {
+                'search-page': {
+                    path: '/search/',
+                    query: {
+                        q: '${search}'
+                    },
+                    params: { search: String },
+                },
+            }
+        };
+        var component = new RelaksRouteManager(options);
+        var match = component.match('/search/?q=');
+        expect(match.params).to.have.property('search');
+    })
+    it ('should capture empty string as NaN when param is number', function() {
+        var options = {
+            routes: {
+                'search-page': {
+                    path: '/search/',
+                    query: {
+                        m: '${max}'
+                    },
+                    params: { search: String, max: Number },
+                },
+            }
+        };
+        var component = new RelaksRouteManager(options);
+        var match = component.match('/search/?m=');
+        expect(match.params).to.have.property('max').that.is.NaN;
     })
 })
 

@@ -764,15 +764,15 @@ function getURLTemplateRegExp(template, types, isPath) {
         var variableType = types[variable];
         var variablePattern;
         if (variableType === Number || variableType === Boolean) {
-            variablePattern = '[\\d\\.]+';
+            variablePattern = '[\\d\\.]*';
         } else if (typeof(variableType) === 'object') {
             variablePattern = variableType.pattern;
         }
         if (!variablePattern) {
             if (isPath) {
-                variablePattern = '[^/]+'
+                variablePattern = '[^/]*'
             } else {
-                variablePattern = '.+';
+                variablePattern = '.*';
             }
         }
         return '(' + variablePattern + ')';
@@ -806,7 +806,7 @@ function getURLTemplateVariables(template) {
 }
 
 function matchTemplate(urlPart, template, types, params, isPath) {
-    if (!urlPart || !template) {
+    if (urlPart === undefined || !template) {
         return false;
     }
     if (template instanceof Array) {
@@ -891,10 +891,7 @@ function castValue(string, type) {
     if (type === String) {
         return string;
     } else if (type === Number) {
-        var n = parseFloat(string);
-        if (n === n) {
-            return n;
-        }
+        return parseFloat(string);
     } else if (type === Boolean) {
         var n = parseFloat(string);
         if (n === n) {
@@ -913,7 +910,11 @@ function stringifyValue(value, type) {
     if (type === String) {
         return value;
     } else if (type === Number) {
-        return String(value);
+        if (value === value) {
+            return String(value);
+        } else {
+            return ''; // NAN
+        }
     } else if (type === Boolean) {
         return (value) ? '1' : '0';
     } else if (type instanceof Object) {

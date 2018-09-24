@@ -96,6 +96,55 @@ describe('#fill()', function() {
         expect(urlParts).to.have.property('path').that.equals('/news/');
         expect(urlParts).to.have.property('hash').that.equals('R444');
     })
+    it ('should place empty string in query', function() {
+        var options = {
+            routes: {
+                'search-page': {
+                    path: '/search',
+                    params: { search: String, max: Number },
+                    query: {
+                        q: '${search}',
+                        m: '${max}',
+                    }
+                }
+            },
+        };
+        var component = new RelaksRouteManager(options);
+        var urlParts = component.fill('search-page', {
+            search: '',
+            max: 8
+        });
+        expect(urlParts).to.have.property('path').that.equals('/search');
+        expect(urlParts).to.have.property('query').that.deep.equals({
+            q: '',
+            m: '8'
+        });
+    })
+    it ('should place empty string in query when number is NaN', function() {
+        var options = {
+            routes: {
+                'search-page': {
+                    path: '/search',
+                    params: { search: String, max: Number },
+                    query: {
+                        q: '${search}',
+                        m: '${max}',
+                    }
+                }
+            },
+        };
+        var component = new RelaksRouteManager(options);
+        var urlParts = component.fill('search-page', {
+            search: '',
+            max: NaN
+        });
+        expect(urlParts).to.have.property('path').that.equals('/search');
+        expect(urlParts).to.have.property('query').that.deep.equals({
+            q: '',
+            m: ''
+        });
+    })
+
 })
 
 var WordList = {
