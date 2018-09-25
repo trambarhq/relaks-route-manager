@@ -226,12 +226,13 @@ prototype.change = function(url, options) {
  *
  * @param  {String} name
  * @param  {Object} params
+ * @param  {Object} newContext
  *
  * @return {Promise}
  */
-prototype.push = function(name, params) {
+prototype.push = function(name, params, newContext) {
     try {
-        var match = this.generate(name, params);
+        var match = this.generate(name, params, newContext);
         var time = getTimeStamp();
         return this.apply(match, time, true, false);
     } catch (err) {
@@ -244,12 +245,13 @@ prototype.push = function(name, params) {
  *
  * @param  {String} name
  * @param  {Object} params
+ * @param  {Object} newContext
  *
  * @return {Promise}
  */
-prototype.replace = function(name, params) {
+prototype.replace = function(name, params, newContext) {
     try {
-        var match = this.generate(name, params);
+        var match = this.generate(name, params, newContext);
         var time = getTimeStamp();
         return this.apply(match, time, true, true);
     } catch (err) {
