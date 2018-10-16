@@ -226,7 +226,7 @@ prototype.change = function(url, options) {
  *
  * @param  {String} name
  * @param  {Object} params
- * @param  {Object} newContext
+ * @param  {Object|undefined} newContext
  *
  * @return {Promise}
  */
@@ -245,7 +245,7 @@ prototype.push = function(name, params, newContext) {
  *
  * @param  {String} name
  * @param  {Object} params
- * @param  {Object} newContext
+ * @param  {Object|undefined} newContext
  *
  * @return {Promise}
  */
@@ -620,14 +620,18 @@ prototype.load = function(match) {
 
 /**
  * Call the load function of every route
+ *
+ * @return  {Promise}
  */
 prototype.preload = function() {
+    var promises = [];
     for (var name in this.routes) {
         var routeDef = this.routes[name];
         if (routeDef && routeDef.load) {
-            routeDef.load({}, {});
+            promises.push(routeDef.load({}, {}));
         }
     }
+    return Promise.all(promises);
 };
 
 /**
