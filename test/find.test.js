@@ -146,6 +146,45 @@ describe('#find()', function() {
             var url = component.find('stroy-page', { id: 747 });
         }).to.throw(Error).that.has.property('status', 500);
     })
+    it ('should generate a URL for a route with custom path matching', function() {
+        var options = {
+            routes: {
+                'special-page': {
+                    path: {
+                        to: (params) => {
+                            return `/special/${params.path}`;
+                        }
+                    },
+                },
+            }
+        };
+        var component = new RelaksRouteManager(options);
+        var url = component.find('special-page', { path: 'something/nice/' });
+        expect(url).to.equal('/special/something/nice/');
+    })
+    it ('should return undefined when a route has a wildcard path', function() {
+        var options = {
+            routes: {
+                'catch-all-page': {
+                    path: '*',
+                },
+            }
+        };
+        var component = new RelaksRouteManager(options);
+        var url = component.find('catch-all-page', {});
+        expect(url).to.equal(undefined);
+    })
+    it ('should return undefined when a route does have a path', function() {
+        var options = {
+            routes: {
+                'path-less-page': {
+                },
+            }
+        };
+        var component = new RelaksRouteManager(options);
+        var url = component.find('path-less-page', {});
+        expect(url).to.equal(undefined);
+    })
 })
 
 var WordList = {

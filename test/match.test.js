@@ -156,6 +156,27 @@ describe('#match()', function() {
         var match = component.match('/search/?m=');
         expect(match.params).to.have.property('max').that.is.NaN;
     })
+    it ('should match a route with custom path matching', function() {
+        var options = {
+            routes: {
+                'special-page': {
+                    path: {
+                        from: (path, params) => {
+                            var m = /\/special\/(.*)/.exec(path);
+                            if (m) {
+                                params.path = m[1];
+                                return true;
+                            }
+                        }
+                    },
+                },
+            }
+        };
+        var component = new RelaksRouteManager(options);
+        var match = component.match('/special/something/nice/');
+        expect(match.name).to.equal('special-page');
+        expect(match.params).to.have.property('path', 'something/nice/');
+    })
 })
 
 var WordList = {

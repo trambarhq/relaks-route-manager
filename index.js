@@ -547,13 +547,16 @@ prototype.fill = function(name, params) {
     if (!routeDef) {
         throw new RelaksRouteManagerError(500, 'No route by that name: ' + name);
     }
-    if (routeDef.path === '*' || typeof(routeDef.path) !== 'string') {
+    if (routeDef.path === '*') {
         return null;
     }
     var types = routeDef.params;
     var path = fillTemplate(routeDef.path, types, params, true);
     var hash = fillTemplate(routeDef.hash, types, params);
     var query = {};
+    if (typeof(path) !== 'string') {
+        return null;
+    }
     for (var queryVarName in routeDef.query) {
         var queryVarTemplate = routeDef.query[queryVarName];
         var queryVarValue = fillTemplate(queryVarTemplate, types, params);
