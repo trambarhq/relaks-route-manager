@@ -228,7 +228,7 @@ prototype.change = function(url, options) {
  * @param  {Object} params
  * @param  {Object|undefined} newContext
  *
- * @return {Promise}
+ * @return {Promise<Boolean>}
  */
 prototype.push = function(name, params, newContext) {
     try {
@@ -247,7 +247,7 @@ prototype.push = function(name, params, newContext) {
  * @param  {Object} params
  * @param  {Object|undefined} newContext
  *
- * @return {Promise}
+ * @return {Promise<Boolean>}
  */
 prototype.replace = function(name, params, newContext) {
     try {
@@ -613,7 +613,7 @@ prototype.load = function(match) {
             throw new RelaksRouteManagerError(404, 'No route');
         }
         if (routeDef.load) {
-            result = routeDef.load(match.params, match.context);
+            result = routeDef.load(match);
         }
         return Promise.resolve(result);
     } catch (err) {
