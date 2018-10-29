@@ -260,6 +260,161 @@ describe('#change()', function() {
             expect(changeCount).to.equal(2);
         });
     })
+    it ('should accept an anchor element as input', function() {
+        var options = {
+            routes: {
+                'news-page': {
+                    path: '/news/',
+                    params: { storyID: Number, reactionID: Number },
+                    hash: [ 'S${storyID}', 'R${reactionID}' ],
+                },
+                'story-page': {
+                    path: '/story/${id}',
+                    params: { id: Number },
+                },
+            },
+            basePath: '/forum'
+        };
+        var anchor = document.createElement('A');
+        anchor.href = '/forum/story/5';
+        var component = new RelaksRouteManager(options);
+        return component.change(anchor).then((result) => {
+            expect(result).to.be.true;
+            expect(component.url).to.equal('/forum/story/5');
+            expect(component.name).to.equal('story-page');
+            expect(component.params).to.deep.equal({ id: 5 });
+            expect(location.pathname).to.equal('/forum/story/5');
+        });
+    })
+    it ('should accept an anchor element with URL in hash', function() {
+        var options = {
+            useHashFallback: true,
+            routes: {
+                'news-page': {
+                    path: '/news/',
+                    params: { storyID: Number, reactionID: Number },
+                    hash: [ 'S${storyID}', 'R${reactionID}' ],
+                },
+                'story-page': {
+                    path: '/story/${id}',
+                    params: { id: Number },
+                },
+            },
+            basePath: '/forum'
+        };
+        var anchor = document.createElement('A');
+        anchor.href = '#/forum/story/5';
+        var component = new RelaksRouteManager(options);
+        return component.change(anchor).then((result) => {
+            expect(result).to.be.true;
+            expect(component.url).to.equal('/forum/story/5');
+            expect(component.name).to.equal('story-page');
+            expect(component.params).to.deep.equal({ id: 5 });
+            expect(location.pathname).to.equal('/forum/story/5');
+        });
+    })
+    it ('should fail when anchor points to URL with different protocol', function() {
+        var options = {
+            routes: {
+                'news-page': {
+                    path: '/news/',
+                    params: { storyID: Number, reactionID: Number },
+                    hash: [ 'S${storyID}', 'R${reactionID}' ],
+                },
+                'story-page': {
+                    path: '/story/${id}',
+                    params: { id: Number },
+                },
+                'welcome-page': {
+                    path: '/',
+                },
+            },
+            basePath: '/forum'
+        };
+        var anchor = document.createElement('A');
+        anchor.href = `https://${location.host}/forum/story/5`;
+        var component = new RelaksRouteManager(options);
+        return expect(component.change(anchor))
+            .to.eventually.be.rejectedWith(Error)
+            .that.has.property('status', 400);
+    })
+    it ('should fail when anchor points to URL with different protocol', function() {
+        var options = {
+            routes: {
+                'news-page': {
+                    path: '/news/',
+                    params: { storyID: Number, reactionID: Number },
+                    hash: [ 'S${storyID}', 'R${reactionID}' ],
+                },
+                'story-page': {
+                    path: '/story/${id}',
+                    params: { id: Number },
+                },
+                'welcome-page': {
+                    path: '/',
+                },
+            },
+            basePath: '/forum'
+        };
+        var anchor = document.createElement('A');
+        anchor.href = `http://nowhere/forum/story/5`;
+        var component = new RelaksRouteManager(options);
+        return expect(component.change(anchor))
+            .to.eventually.be.rejectedWith(Error)
+            .that.has.property('status', 400);
+    })
+    it ('should fail when anchor points to URL with different path', function() {
+        var options = {
+            useHashFallback: true,
+            routes: {
+                'news-page': {
+                    path: '/news/',
+                    params: { storyID: Number, reactionID: Number },
+                    hash: [ 'S${storyID}', 'R${reactionID}' ],
+                },
+                'story-page': {
+                    path: '/story/${id}',
+                    params: { id: Number },
+                },
+                'welcome-page': {
+                    path: '/',
+                },
+            },
+            basePath: '/forum'
+        };
+        var anchor = document.createElement('A');
+        anchor.href = `http://${location.host}/xyz#/forum/story/5`;
+        var component = new RelaksRouteManager(options);
+        return expect(component.change(anchor))
+            .to.eventually.be.rejectedWith(Error)
+            .that.has.property('status', 400);
+    })
+    it ('should fail when anchor points to URL with different query string', function() {
+        var options = {
+            useHashFallback: true,
+            routes: {
+                'news-page': {
+                    path: '/news/',
+                    params: { storyID: Number, reactionID: Number },
+                    hash: [ 'S${storyID}', 'R${reactionID}' ],
+                },
+                'story-page': {
+                    path: '/story/${id}',
+                    params: { id: Number },
+                },
+                'welcome-page': {
+                    path: '/',
+                },
+            },
+            basePath: '/forum'
+        };
+        var anchor = document.createElement('A');
+        anchor.href = `http://${location.host}/${location.pathname}?xyz=123#/forum/story/5`;
+        var component = new RelaksRouteManager(options);
+        return expect(component.change(anchor))
+            .to.eventually.be.rejectedWith(Error)
+            .that.has.property('status', 400);
+    })
 })
 
 function ManualPromise() {

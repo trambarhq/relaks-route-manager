@@ -650,17 +650,17 @@ prototype.preload = function() {
 prototype.getLocationURL = function(location) {
     var docLocation = window.location;
     if (location !== docLocation) {
-        if (location.protocol !== docLocation.protocol) {
-            return '';
-        } else if (location.host !== docLocation.host) {
-            return '';
+        if (location.host !== docLocation.host) {
+            throw new RelaksRouteManagerError(400, 'Host does not match');
+        } else if (location.protocol !== docLocation.protocol) {
+            throw new RelaksRouteManagerError(400, 'Protocol does not match');
         }
         if (this.options.useHashFallback) {
             if (location.pathname !== docLocation.pathname) {
-                return '';
+                throw new RelaksRouteManagerError(400, 'Path does not match');
             }
             if (location.search !== docLocation.search) {
-                return '';
+                throw new RelaksRouteManagerError(400, 'Query string does not match');
             }
         }
     }
