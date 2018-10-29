@@ -213,7 +213,7 @@ prototype.removeRewrites = function(rewrites) {
 prototype.change = function(url, options) {
     try {
         if (url instanceof Object) {
-            url = this.getLocationURL(link);
+            url = this.getLocationURL(url);
         }
         var match = this.match(url);
         var replace = (options) ? options.replace || false : false;
