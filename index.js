@@ -205,13 +205,16 @@ prototype.removeRewrites = function(rewrites) {
 /**
  * Change the route to what the given URL points to
  *
- * @param  {String} url
+ * @param  {String|HTMLAnchorElement|Location} url
  * @param  {Object|undefined} options
  *
  * @return {Promise<Boolean>}
  */
 prototype.change = function(url, options) {
     try {
+        if (url instanceof Object) {
+            url = this.getLocationURL(link);
+        }
         var match = this.match(url);
         var replace = (options) ? options.replace || false : false;
         var time = getTimeStamp();
@@ -750,7 +753,7 @@ prototype.setLocationURL = function(url, state, replace) {
  * @param  {Event} evt
  */
 prototype.handleLinkClick = function(evt) {
-    if (evt.button === 0) {
+    if (evt.button === 0 && !evt.defaultPrevented) {
         var link = getLink(evt.target);
         if (link && !link.target && !link.download) {
             var url = this.getLocationURL(link);

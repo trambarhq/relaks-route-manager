@@ -1,5 +1,5 @@
-## Relaks Route Manager
-
+Relaks Route Manager
+--------------------
 Relaks Route Manager is a simple, flexible route manager designed for React
 applications that uses [Relaks](https://github.com/chung-leong/relaks). It
 monitors the browser's current location using the [History API](https://developer.mozilla.org/en-US/docs/Web/API/History_API) and extract
@@ -20,13 +20,13 @@ isomorphic React apps.
 * [Events](#events)
 * [Examples](#examples)
 
-### Installation
+## Installation
 
 ```sh
 npm --save-dev install relaks-route-manager
 ```
 
-### Usage
+## Usage
 
 ```javascript
 import RouteManager from 'relaks-route-manager';
@@ -45,9 +45,9 @@ routeManager.addEventListener('change', handleRouteChange);
 
 ```
 
-### Options
+## Options
 
-#### useHashFallback
+### useHashFallback
 
 Place the URL of the app's current route in the hash portion of the browser
 location instead of changing the actual path. When `useHashFallback` is false,
@@ -66,7 +66,7 @@ Electron, for example).
 
 Default value: `false`
 
-#### trackLocation
+### trackLocation
 
 Track changes of the current location caused by the visitor pressing the
 browser's back or forward button.
@@ -74,7 +74,7 @@ browser's back or forward button.
 Default value: `true` when the window object is present (i.e. in a web-browser);
 `false` otherwise (e.g. in Node.js).
 
-#### trackLinks
+### trackLinks
 
 Intercept click events emitted by hyperlinks (A elements). Links with the
 attribute `target` or `download` are ignored.
@@ -82,7 +82,7 @@ attribute `target` or `download` are ignored.
 Default value: `true` when the window object is present (i.e. in a web-browser);
 `false` otherwise (e.g. in Node.js).
 
-#### preloadingDelay
+### preloadingDelay
 
 Amount of time (in milliseconds) to wait before initiating page preloading.
 Relevant only for apps that employ code-splitting. When specified, the route
@@ -90,41 +90,41 @@ manager will call `load()` of every route after the delay.
 
 Default value: `NaN` (no preploading of pages)
 
-#### routes
+### routes
 
 A hash table (i.e. an object) containing your app's routes. See [routing table](#routing-table).
 
-#### rewrites
+### rewrites
 
 An array containing rewrite functions that modify a URL prior to matching it
 against the routing table. See [rewrite rules](#rewrite-rules).
 
-#### basePath
+### basePath
 
 When specified, create a rewrite rule that strips the base path from the URL
 prior to matching and adds in the base path when a URL is requested through
 `find()`.
 
-### Routing table
+## Routing table
 
 ```javascript
 let routes = {
     'welcome': {
         path: '/',
-        load: async (params) => {
+        load: async () => {
             params.module = await import('pages/welcome-page' /* webpackChunkName: "welcome-page" */);
         }
     },
     'film-list': {
         path: '/films/',
-        load: async (params) => {
+        load: async () => {
             params.module = await import('pages/film-list' /* webpackChunkName: "film-list" */);
         }
     },
     'film-summary': {
         path: '/films/${id}/',
         params: { id: Number },
-        load: async (params) => {
+        load: async () => {
             params.module = await import('pages/film-page' /* webpackChunkName: "film-page" */);
         }
     },
@@ -132,11 +132,11 @@ let routes = {
 };
 ```
 
-### Rewrite rules
+## Rewrite rules
 
-### Methods
+## Methods
 
-#### addEventListener
+### addEventListener
 
 ```javascript
 /**
@@ -152,7 +152,7 @@ before any existing listeners. Otherwise it's added at the end of the list.
 
 Inherited from [relaks-event-emitter](https://github.com/chung-leong/relaks-event-emitter).
 
-#### removeEventListener
+### removeEventListener
 
 ```javascript
 /**
@@ -166,7 +166,7 @@ match what was given to [addEventListener](#addeventlistener)().
 
 Inherited from [relaks-event-emitter](https://github.com/chung-leong/relaks-event-emitter).
 
-#### start
+### start
 
 ```javascript
 /**
@@ -213,7 +213,7 @@ current route.
 The returned promise is fulfilled with `false` when `evt.preventDefault()` is
 called during `beforechange`.
 
-#### push
+### push
 
 ```javascript
 /**
@@ -239,7 +239,7 @@ not in a route's URL.
 The returned promise is fulfilled with `false` when `evt.preventDefault()` is
 called during `beforechange`.
 
-#### replace
+### replace
 
 ```javascript
 /**
@@ -254,7 +254,7 @@ replace(name, params, newContext)
 
 Change the route, displacing the previous route.
 
-#### change
+### change
 
 ```javascript
 /**
@@ -273,7 +273,7 @@ this behavior.
 Generally, you would use `push()` or `replace()` instead when changing the
 route programmatically.
 
-#### find
+### find
 
 ```javascript
 /**
@@ -292,7 +292,7 @@ are the route parameters.
 If `newContext` is supplied, it'll be merged with the existing context and
 used for rewrite the URL. Otherwise the existing context is used.
 
-#### back
+### back
 
 ```javascript
 /**
@@ -301,7 +301,7 @@ used for rewrite the URL. Otherwise the existing context is used.
 back()
 ```
 
-#### match
+### match
 
 ```javascript
 /**
@@ -314,7 +314,7 @@ back()
 match(url)
 ```
 
-#### substitute
+### substitute
 
 ```javascript
 /**
@@ -326,7 +326,7 @@ match(url)
 substitute(name, params)
 ```
 
-#### restore
+### restore
 
 ```javascript
 /**
@@ -335,7 +335,7 @@ substitute(name, params)
 restore()
 ```
 
-#### preload
+### preload
 
 ```javascript
 /**
@@ -344,10 +344,10 @@ restore()
 preload()
 ```
 
-### Events
+## Events
 
-#### beforechange
+### beforechange
 
-#### change
+### change
 
-### Examples
+## Examples
