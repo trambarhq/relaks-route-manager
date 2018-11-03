@@ -7,17 +7,18 @@ describe('#preload()', function() {
         var options = {
             routes: {
                 'page-1': {
-                    load: () => {
+                    load: (match) => {
                         called['page-1'] = true;
+                        match.params.module = null;
                     }
                 },
                 'page-2': {
-                    load: () => {
+                    load: (match) => {
                         called['page-2'] = true;
                     }
                 },
                 'page-3': {
-                    load: () => {
+                    load: (match) => {
                         called['page-3'] = true;
                     }
                 },

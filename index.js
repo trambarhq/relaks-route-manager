@@ -634,7 +634,11 @@ prototype.preload = function() {
     for (var name in this.routes) {
         var routeDef = this.routes[name];
         if (routeDef && routeDef.load) {
-            promises.push(routeDef.load({}, {}));
+            var match = {
+                params: {},
+                context: {},
+            };
+            promises.push(routeDef.load(match));
         }
     }
     return Promise.all(promises);
