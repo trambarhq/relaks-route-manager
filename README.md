@@ -113,7 +113,21 @@ let routes = {
 
 ## Rewrite rules
 
+A rewrite rule is an object containing two functions: `from()` and `to()`. The route manager invokes `from()` before it tries to match a URL to a route. It invokes `to()` when it forms a URL (i.e. when `find()` is called). Both functions receives `urlParts` and `context` as arguments
+
 ## Methods
+
+* [addEventListener](#addeventlistener)
+* [removeEventListener](#removeeventlistener)
+
+* [start](#start)
+* [push](#push)
+* [replace](#replace)
+* [change](#change)
+* [find](#find)
+* [back](#back)
+* [match](#match)
+* [preload](#preload)
 
 ### addEventListener
 
@@ -143,25 +157,7 @@ async function start(url?: string): boolean
 
 Start the route manager, using `url` for the initial route. If `url` is omitted and [trackLocation](#trackLocation) is `true`, the URL will be obtained from the browser's `location` object.
 
-A promise is returned by this method. It is fulfilled with `true` when a `change` event occurs. This can happen either because the intended route is reached or if `evt.postponeDefault()` is used during a `beforechange` event and `evt.substitute()` is called at some point.
-
-For example, suppose a visitor has enter the URL of an access-controlled page into the browser. The following sequence would occur:
-
-1. `start()` triggers a `beforechange` event.
-2. The `beforechange` handler notices the route requires authentication. It calls `evt.postponeDefault()` to block the change, then `evt.substitute()` to redirect to the login page.
-3. `evt.substitute()` triggers a `change` event. The promise returned by `start()` is fulfilled.
-4. The application's UI code starts (i.e. the root React component is rendered), with the login page as the current route.
-5. The visitor logs in.
-6. The promise given to `evt.postponeDefault()` is fulfilled, unblocking `start()`. It changes the route to the intended, access-controlled page.
-
-If the page is not access-controlled, the following sequence would occur instead:
-
-1. `start()` triggers a `beforechange` event.
-2. The `beforechange` handler allows the change to occur.
-3. The promise returned by `start()` is fulfilled.
-4. The application's UI code starts, with the intended, public page as the current route.
-
-The returned promise is fulfilled with `false` when `evt.preventDefault()` is called during `beforechange`.
+The promise returned by this method is fulfilled when a `change` event occurs. This can happen either because the intended route is reached or if `evt.postponeDefault()` and `evt.substitute()` are used during a `beforechange` event.
 
 ### push
 
@@ -239,34 +235,78 @@ Match a URL with a route. `url` should be an internal, relative URL. Returns a o
 
 An exception is thrown if not match is found.
 
-### substitute
-
-```typescript
-async function substitute(name: string, params?: object, newContext?: object)
-```
-
-Go to a route without altering `window.location` or browsing history. Meant for redirection to a log-in page. Call `restore()` later to restore the proper route.
-
-### restore
-
-```typescript
-async function restore(): Boolean
-```
-
-Restore the current route to what it was prior to calling `substitute()`. Does nothing if no substitution was performed.
-
 ### preload
 
 ```typescript
 async function preload(): void
 ```
 
-Run the `load()` methods of every route.
+Run the `load()` methods of every route. The object passed to `load()` will contain `params` and `context` so you can safely update their properties. Other field such as `name` and `url` will be `undefined`.
 
 ## Events
 
+* [beforechange](#beforechange)
+* [change](#change)
+
 ### beforechange
+
+The `beforechange` event is emitted when a route change is about to occur. It gives your app a chance to prevent or postpone the change. For example, you might wish to ask the user to confirm the decision to leave a page when doing so means the loss of unsaved changes. Another usage scenario is to ask the user to log in before viewing a non-public page.
+
+#### Properties
+
+* `type` - 'beforechange'
+* `target` - the route manager
+* `defaultPrevented` - whether `preventDefault()` was called
+* `propagationStopped` - whether `stopImmediatePropagation()` was called
+* `name` - name of the new route
+* `params` - parameters extract from `url`
+* `context` - rewrite context
+* `route` - the route definition
+* `url` - the parameter passed to this function
+* `path` - the path part of the URL
+* `query` - an object containing the query variables
+* `search` - the query string (with leading '?')
+* `hash` - the hash part of the URL (without leading '#')
+
+#### Methods
+
+* `preventDefault()` - stops the route change from happening
+* `postponeDefault(promise: Promise)` - postpones the route change util `promise` is fulfilled
+* `stopImmediatePropagation()` - stops other listeners from receiving the event
+* `substitute(name: string, params?: object, newContext?: object)` - change the route while the required route change is on hold
+
+An event listener can check `evt.route` to see if a route requires authentication. If so, it should call `evt.postponeDefault()` with a promise that fulfills to `true` after authentication--or to `false` if the user declines. The application should then bring up the user interface for logging in. If that involves a different page, use `evt.substitute()` to change the route. The following describes such a login process:
+
+1. The user clicks on a link to an access-controlled page, triggering a `beforechange` event.
+2. The `beforechange` handler notices the route requires authentication. It calls `evt.postponeDefault()` to block the change, then `evt.substitute()` to redirect to the login page.
+3. `evt.substitute()` triggers a `change` event. The app rerenders to show the login page.
+4. The visitor logs in.
+5. The promise given to `evt.postponeDefault()` is fulfilled. The route changes to the intended, access-controlled page.
+
+A call to `start()` will also trigger the `beforechange` event. Suppose a visitor has enter the URL of an access-controlled page into the browser location bar. The following sequence would occur:
+
+1. `start()` triggers a `beforechange` event.
+2. The `beforechange` handler notices the route requires authentication. It calls `evt.postponeDefault()` to block the change, then `evt.substitute()` to redirect to the login page.
+3. `evt.substitute()` triggers a `change` event. The promise returned by `start()` is fulfilled.
+4. The application's UI code starts (i.e. the root React component is rendered), with the login page as the current route.
+5. The visitor logs in.
+6. The promise given to `evt.postponeDefault()` is fulfilled. The route changes to the intended, access-controlled page.
 
 ### change
 
+The `change` event is emitted after a route change has occurred, meaning the route manager has successfully load the necessary code and updated its internal state.
+
+#### Properties
+
+* `type` - 'change'
+* `target` - the route manager
+* `propagationStopped` - whether `stopImmediatePropagation()` was called
+
+#### Methods
+
+* `stopImmediatePropagation()` - stops other listeners from receiving the event
+
 ## Examples
+
+* [Starwars API: Episode V](https://github.com/chung-leong/relaks-starwars-example-sequel) - sequel to the first Starwars API example
+* [Django todo list](https://github.com/chung-leong/relaks-django-todo-example) - demonstrates authentication and data saving using [relaks-django-data-source](https://github.com/chung-leong/relaks-django-data-source)
