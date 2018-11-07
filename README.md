@@ -25,13 +25,13 @@ npm --save-dev install relaks-route-manager
 import RouteManager from 'relaks-route-manager';
 
 let options = {
-    useHashFallback: true,
-    trackLocation: true,
+    basePath: '',
     trackLinks: true,
-    preloadingDelay: 2000,
+    trackLocation: true,
     routes: routingTable,
     rewrites: rewriteRules,
-    basePath: '',
+    preloadingDelay: 2000,
+    useHashFallback: true,
 };
 let routeManager = new RouteManager(options);
 routeManager.addEventListener('change', handleRouteChange);
@@ -39,6 +39,34 @@ routeManager.addEventListener('change', handleRouteChange);
 ```
 
 ## Options
+
+* [basePath](#basepath)
+* [preloadingDelay](#preloadingdelay)
+* [trackLinks](#tracklinks)
+* [trackLocation](#tracklocation)
+* [useHashFallback](#usehashfallback)
+
+### basePath
+
+When specified, create a rewrite rule that strips the base path from the URL prior to matching and adds in the base path when a URL is requested through `find()`.
+
+### preloadingDelay
+
+Amount of time (in milliseconds) to wait before initiating page preloading. Relevant only for apps that employ code-splitting. When specified, the route manager will call `load()` of every route after the delay.
+
+Default value: `NaN` (no preploading of pages)
+
+### trackLinks
+
+Intercept click events emitted by hyperlinks (A elements). Links with the attribute `target` or `download` are ignored.
+
+Default value: `true` when the window object is present (i.e. in a web-browser); `false` otherwise (e.g. in Node.js).
+
+### trackLocation
+
+Track changes of the current location caused by the visitor pressing the browser's back or forward button.
+
+Default value: `true` when the window object is present (i.e. in a web-browser); `false` otherwise (e.g. in Node.js).
 
 ### useHashFallback
 
@@ -54,24 +82,6 @@ Hash fallback is useful when you're unable to add necessary rewrite rules the we
 
 Default value: `false`
 
-### trackLocation
-
-Track changes of the current location caused by the visitor pressing the browser's back or forward button.
-
-Default value: `true` when the window object is present (i.e. in a web-browser); `false` otherwise (e.g. in Node.js).
-
-### trackLinks
-
-Intercept click events emitted by hyperlinks (A elements). Links with the attribute `target` or `download` are ignored.
-
-Default value: `true` when the window object is present (i.e. in a web-browser); `false` otherwise (e.g. in Node.js).
-
-### preloadingDelay
-
-Amount of time (in milliseconds) to wait before initiating page preloading. Relevant only for apps that employ code-splitting. When specified, the route manager will call `load()` of every route after the delay.
-
-Default value: `NaN` (no preploading of pages)
-
 ### routes
 
 A hash table (i.e. an object) containing your app's routes. See [routing table](#routing-table).
@@ -79,10 +89,6 @@ A hash table (i.e. an object) containing your app's routes. See [routing table](
 ### rewrites
 
 An array containing rewrite functions that modify a URL prior to matching it against the routing table. See [rewrite rules](#rewrite-rules).
-
-### basePath
-
-When specified, create a rewrite rule that strips the base path from the URL prior to matching and adds in the base path when a URL is requested through `find()`.
 
 ## Routing table
 
@@ -117,16 +123,26 @@ A rewrite rule is an object containing two functions: `from()` and `to()`. The r
 
 ## Methods
 
+**Event listeners:**
+
 * [addEventListener](#addeventlistener)
 * [removeEventListener](#removeeventlistener)
 
-* [start](#start)
+**Navigation:**
+
+* [back](#back)
+* [change](#change)
 * [push](#push)
 * [replace](#replace)
-* [change](#change)
+* [start](#start)
+
+**Look-up:**
+
 * [find](#find)
-* [back](#back)
 * [match](#match)
+
+**Others:**
+
 * [preload](#preload)
 
 ### addEventListener
@@ -149,15 +165,29 @@ Remove an event listener from the route manager. `handler` and `type` must match
 
 Inherited from [relaks-event-emitter](https://github.com/chung-leong/relaks-event-emitter).
 
-### start
+### back
 
 ```typescript
-async function start(url?: string): boolean
+async function back(): void
 ```
 
-Start the route manager, using `url` for the initial route. If `url` is omitted and [trackLocation](#trackLocation) is `true`, the URL will be obtained from the browser's `location` object.
+Go back to the previous page. The function will reject attempts to go beyond the browsing history of the app.
 
-The promise returned by this method is fulfilled when a `change` event occurs. This can happen either because the intended route is reached or if `evt.postponeDefault()` and `evt.substitute()` are used during a `beforechange` event.
+### change
+
+```typescript
+async function change(url: string, options?: object): boolean
+```
+
+```typescript
+async function change(link: HTMLAnchorElement, options?: object): boolean
+```
+
+Use a URL to change the route. By default, the previous route is pushed into browsing history. Supply the option `{ replace: true }` to override this behavior.
+
+`url` must be an internal, relative URL.
+
+Generally, you would use `push()` or `replace()` instead when changing the route programmatically.
 
 ### push
 
@@ -181,21 +211,15 @@ async function replace(name: string, params?: object, newContext?: object): bool
 
 Change the route, displacing the previous route.
 
-### change
+### start
 
 ```typescript
-async function change(url: string, options?: object): boolean
+async function start(url?: string): boolean
 ```
 
-```typescript
-async function change(link: HTMLAnchorElement, options?: object): boolean
-```
+Start the route manager, using `url` for the initial route. If `url` is omitted and [trackLocation](#trackLocation) is `true`, the URL will be obtained from the browser's `location` object.
 
-Use a URL to change the route. By default, the previous route is pushed into browsing history. Supply the option `{ replace: true }` to override this behavior.
-
-`url` must be an internal, relative URL.
-
-Generally, you would use `push()` or `replace()` instead when changing the route programmatically.
+The promise returned by this method is fulfilled when a `change` event occurs. This can happen either because the intended route is reached or if `evt.postponeDefault()` and `evt.substitute()` are used during a `beforechange` event.
 
 ### find
 
@@ -206,14 +230,6 @@ function find(name: string, params?: object, newContext?: object): string
 Find the URL of a route. `name` is the name of desired page, while `params` are the route parameters.
 
 If `newContext` is supplied, it'll be merged with the existing context and used for rewrite the URL. Otherwise the existing context is used.
-
-### back
-
-```typescript
-async function back(): void
-```
-
-Go back to the previous page. The function will reject attempts to go beyond the browsing history of the app.
 
 ### match
 
@@ -252,28 +268,34 @@ Run the `load()` methods of every route. The object passed to `load()` will cont
 
 The `beforechange` event is emitted when a route change is about to occur. It gives your app a chance to prevent or postpone the change. For example, you might wish to ask the user to confirm the decision to leave a page when doing so means the loss of unsaved changes. Another usage scenario is to ask the user to log in before viewing a non-public page.
 
-#### Properties
+**Default action:**
 
-* `type` - 'beforechange'
-* `target` - the route manager
-* `defaultPrevented` - whether `preventDefault()` was called
-* `propagationStopped` - whether `stopImmediatePropagation()` was called
+Permit the change to occur.
+
+**Properties:**
+
+* `context` - rewrite context
+* `hash` - the hash part of the URL (without leading '#')
 * `name` - name of the new route
 * `params` - parameters extract from `url`
-* `context` - rewrite context
-* `route` - the route definition
-* `url` - the parameter passed to this function
 * `path` - the path part of the URL
 * `query` - an object containing the query variables
+* `route` - the route definition
 * `search` - the query string (with leading '?')
-* `hash` - the hash part of the URL (without leading '#')
+* `url` - the parameter passed to this function
 
-#### Methods
+* `defaultPrevented` - whether `preventDefault()` was called
+* `propagationStopped` - whether `stopImmediatePropagation()` was called
+* `target` - the route manager
+* `type` - "beforechange"
 
-* `preventDefault()` - stops the route change from happening
+**Methods:**
+
+* `substitute(name: string, params?: object, newContext?: object)` - change the route while the requested route change is on hold
+
 * `postponeDefault(promise: Promise)` - postpones the route change util `promise` is fulfilled
+* `preventDefault()` - stops the route change from happening
 * `stopImmediatePropagation()` - stops other listeners from receiving the event
-* `substitute(name: string, params?: object, newContext?: object)` - change the route while the required route change is on hold
 
 An event listener can check `evt.route` to see if a route requires authentication. If so, it should call `evt.postponeDefault()` with a promise that fulfills to `true` after authentication--or to `false` if the user declines. The application should then bring up the user interface for logging in. If that involves a different page, use `evt.substitute()` to change the route. The following describes such a login process:
 
@@ -296,13 +318,13 @@ A call to `start()` will also trigger the `beforechange` event. Suppose a visito
 
 The `change` event is emitted after a route change has occurred, meaning the route manager has successfully load the necessary code and updated its internal state.
 
-#### Properties
+**Properties:**
 
-* `type` - 'change'
-* `target` - the route manager
 * `propagationStopped` - whether `stopImmediatePropagation()` was called
+* `target` - the route manager
+* `type` - `"change"`
 
-#### Methods
+**Methods:**
 
 * `stopImmediatePropagation()` - stops other listeners from receiving the event
 
