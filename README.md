@@ -310,3 +310,7 @@ The `change` event is emitted after a route change has occurred, meaning the rou
 
 * [Starwars API: Episode V](https://github.com/chung-leong/relaks-starwars-example-sequel) - sequel to the first Starwars API example
 * [Django todo list](https://github.com/chung-leong/relaks-django-todo-example) - demonstrates authentication and data saving using [relaks-django-data-source](https://github.com/chung-leong/relaks-django-data-source)
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](#LICENSE) file for details
