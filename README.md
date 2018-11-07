@@ -1,6 +1,6 @@
 Relaks Route Manager
 --------------------
-Relaks Route Manager is a simple, flexible route manager designed for React applications that uses [Relaks](https://github.com/chung-leong/relaks). It monitors the browser's current location using the [History API](https://developer.mozilla.org/en-US/docs/Web/API/History_API) and extract parameters from the URL. You can then vary the contents displayed by your app based on these parameters. In addition, it can also trap clicks on hyperlinks, automatically handling page requests internally.
+Relaks Route Manager is a simple, flexible route manager designed for React applications that uses [Relaks](https://github.com/chung-leong/relaks). It monitors the browser's current location using the [History API](https://developer.mozilla.org/en-US/docs/Web/API/History_API) and extract parameters from the URL. You can then vary the contents displayed by your app based on these parameters. In addition, it traps clicks on hyperlinks, automatically handling page requests internally.
 
 The library has a promise-based asynchronous interface. It's specifically designed with WebPack code-splitting in mind. It's also designed to be used in isomorphic React apps.
 
@@ -58,7 +58,7 @@ Default value: `NaN` (no preploading of pages)
 
 ### trackLinks
 
-Intercept click events emitted by hyperlinks (A elements). Links with the attribute `target` or `download` are ignored.
+Intercept click events emitted by hyperlinks (`A` elements). Links with the attribute `target` or `download` are ignored.
 
 Default value: `true` when the window object is present (i.e. in a web-browser); `false` otherwise (e.g. in Node.js).
 
@@ -78,17 +78,17 @@ When it's true, the location will like this:
 
 `https://example.com/#/news/`
 
-Hash fallback is useful when you're unable to add necessary rewrite rules the web server in order to enable client-side path changes. It's the only way to use this library when your app is running as a local file (in Cordova or Electron, for example).
+Hash fallback is useful when you're unable to add necessary rewrite rules to the web server in order to enable client-side path changes. It's the only way to use this library when your app is running as a local file (in Cordova or Electron, for example).
 
 Default value: `false`
-
-### routes
-
-A hash table (i.e. an object) containing your app's routes. See [routing table](#routing-table).
 
 ### rewrites
 
 An array containing rewrite functions that modify a URL prior to matching it against the routing table. See [rewrite rules](#rewrite-rules).
+
+### routes
+
+A hash table (i.e. an object) containing your app's routes. See [routing table](#routing-table).
 
 ## Routing table
 
@@ -199,7 +199,7 @@ Change the route, saving the previous route in browsing history. `name` is the n
 
 If `newContext` is supplied, it'll be merged with the existing rewrite context and becomes the new context. Otherwise the existing is reused.
 
-No checks are done on `params`. It's possible to supply parameters that would not in a route's URL.
+No checks are done on `params`. It's possible to supply parameters that would not appear in a route's URL.
 
 The returned promise is fulfilled with `false` when `evt.preventDefault()` is called during `beforechange`.
 
@@ -217,7 +217,7 @@ Change the route, displacing the previous route.
 async function start(url?: string): boolean
 ```
 
-Start the route manager, using `url` for the initial route. If `url` is omitted and [trackLocation](#trackLocation) is `true`, the URL will be obtained from the browser's `location` object.
+Start the route manager, using `url` for the initial route. If `url` is omitted and [trackLocation](#tracklocation) is `true`, the URL will be obtained from the browser's `location` object.
 
 The promise returned by this method is fulfilled when a `change` event occurs. This can happen either because the intended route is reached or if `evt.postponeDefault()` and `evt.substitute()` are used during a `beforechange` event.
 
@@ -237,17 +237,19 @@ If `newContext` is supplied, it'll be merged with the existing context and used 
 function match(url: string): object
 ```
 
-Match a URL with a route. `url` should be an internal, relative URL. Returns a object containing the following fields:
+Match a URL with a route, returning a object containing the following fields:
 
+* `context` - rewrite context
+* `hash` - hash part of the URL (without leading '#')
 * `name` - name of the route
 * `params` - parameters extract from `url`
-* `context` - rewrite context
-* `route` - the route definition
+* `path` - path part of the URL
+* `query` - an object containing query variables
+* `route` - route definition
+* `search` - query string (with leading '?')
 * `url` - the parameter passed to this function
-* `path` - the path part of the URL
-* `query` - an object containing the query variables
-* `search` - the query string (with leading '?')
-* `hash` - the hash part of the URL (without leading '#')
+
+`url` should be an internal, relative URL.
 
 An exception is thrown if not match is found.
 
@@ -275,15 +277,14 @@ Permit the change to occur.
 **Properties:**
 
 * `context` - rewrite context
-* `hash` - the hash part of the URL (without leading '#')
+* `hash` - hash part of the URL (without leading '#')
 * `name` - name of the new route
-* `params` - parameters extract from `url`
-* `path` - the path part of the URL
-* `query` - an object containing the query variables
-* `route` - the route definition
-* `search` - the query string (with leading '?')
-* `url` - the parameter passed to this function
-
+* `params` - parameters extract from the URL
+* `path` - path part of the URL
+* `query` - an object containing query variables
+* `route` - route definition
+* `search` - query string (with leading '?')
+* `url` - the URL
 * `defaultPrevented` - whether `preventDefault()` was called
 * `propagationStopped` - whether `stopImmediatePropagation()` was called
 * `target` - the route manager
@@ -292,12 +293,11 @@ Permit the change to occur.
 **Methods:**
 
 * `substitute(name: string, params?: object, newContext?: object)` - change the route while the requested route change is on hold
+* `postponeDefault(promise: Promise)` - postpone the route change util `promise` is fulfilled
+* `preventDefault()` - stop the route change from happening
+* `stopImmediatePropagation()` - stop other listeners from receiving the event
 
-* `postponeDefault(promise: Promise)` - postpones the route change util `promise` is fulfilled
-* `preventDefault()` - stops the route change from happening
-* `stopImmediatePropagation()` - stops other listeners from receiving the event
-
-An event listener can check `evt.route` to see if a route requires authentication. If so, it should call `evt.postponeDefault()` with a promise that fulfills to `true` after authentication--or to `false` if the user declines. The application should then bring up the user interface for logging in. If that involves a different page, use `evt.substitute()` to change the route. The following describes such a login process:
+An event listener can check `evt.route` to see if a route requires authentication. If so, it should call `evt.postponeDefault()` with a promise that fulfills to `true` after authentication--or to `false` if the user declines. The application should then bring up an user interface for logging in. If that involves a different page, use `evt.substitute()` to change the route. The following describes such a login process:
 
 1. The user clicks on a link to an access-controlled page, triggering a `beforechange` event.
 2. The `beforechange` handler notices the route requires authentication. It calls `evt.postponeDefault()` to block the change, then `evt.substitute()` to redirect to the login page.
@@ -326,7 +326,7 @@ The `change` event is emitted after a route change has occurred, meaning the rou
 
 **Methods:**
 
-* `stopImmediatePropagation()` - stops other listeners from receiving the event
+* `stopImmediatePropagation()` - stop other listeners from receiving the event
 
 ## Examples
 
