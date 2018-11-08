@@ -1043,7 +1043,7 @@ function composeQueryString(query) {
 }
 
 function getLink(element) {
-    while (element && element.tagName !== 'A' && !element.href) {
+    while (element && (element.tagName !== 'A' || !element.href)) {
         element = element.parentNode;
     }
     return element;
