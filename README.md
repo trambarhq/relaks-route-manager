@@ -9,6 +9,7 @@ The library has a promise-based asynchronous interface. It's specifically design
 * [Options](#options)
 * [Routing table](#routing-table)
 * [Rewrite rules](#rewrite-rules)
+* [Properties](#properties)
 * [Methods](#methods)
 * [Events](#events)
 * [Examples](#examples)
@@ -92,34 +93,176 @@ A hash table (i.e. an object) containing your app's routes. See [routing table](
 
 ## Routing table
 
+Here's a section of the routing table used in [one of the examples](https://github.com/chung-leong/relaks-starwars-example-sequel):
+
 ```javascript
 let routes = {
     'welcome': {
         path: '/',
-        load: async () => {
-            params.module = await import('pages/welcome-page' /* webpackChunkName: "welcome-page" */);
+        load: async (match) => {
+            match.params.module = await import('pages/welcome-page' /* webpackChunkName: "welcome-page" */);
         }
     },
     'film-list': {
         path: '/films/',
-        load: async () => {
-            params.module = await import('pages/film-list' /* webpackChunkName: "film-list" */);
+        load: async (match) => {
+            match.params.module = await import('pages/film-list' /* webpackChunkName: "film-list" */);
         }
     },
     'film-summary': {
         path: '/films/${id}/',
         params: { id: Number },
-        load: async () => {
-            params.module = await import('pages/film-page' /* webpackChunkName: "film-page" */);
+        load: async (match) => {
+            match.params.module = await import('pages/film-page' /* webpackChunkName: "film-page" */);
         }
     },
     /* ... */
 };
 ```
 
+The key of each entry is the route's name. A route definition object may have these properties:
+
+* `path` - a pattern used to match against the path of the URL
+* `query` - an object containing patterns used to match against query variables
+* `hash` - a patterned used to match against the hash of the URL
+* `params` - an object specifying the parameters' types
+* `load` - a function that is called every time the route is used
+
+The ES6-like `${name}` syntax is used to specify where capturing occurs. If an entry with the name is found in `params`, it'll used to cast the parameter to the correct type. Otherwise it'll left as a string. A parameter's type impacts matching. If it's `Number` or `Boolean`, the matching string can only contain digits. If it's `String`, the string can have any character, except when matching is done on a path, in which case it may not contain `/`.
+
+The following shows a route where parameters are extracted from all parts of a URL:
+
+```javascript
+{
+    'dog-page': {
+        path: '/owners/${ownerName}/dogs/${dogName}',
+        query: {
+            f: '${friendly}'
+        },
+        hash: 'P${paragraphNumber}',
+        params: {
+            ownerName: String,
+            dogName: String,
+            friendly: Boolean,
+            paragraphNumber: Number,
+        },
+        load: async (match) => {
+            match.params.module = await import('pages/dog-page' /* webpackChunkName: "dog-page" */);
+        }
+        authentication: true,
+    }
+}
+```
+
+A route is chosen when its `path` matches the URL. Parameters from `query` and `hash` are treated as optional. When `path` is `"*"`, it'll match any path. Such a route could be used for a 404 page. It should be placed at the bottom of the routing table.
+
+The route definition may contain custom fields. In the example above, we're specifying that our dog page requires authentication.
+
+### Loading a route
+
+The `load()` function is meant to be used to load JavaScript code used by the route on demand. In the example above, [WebPack's code-splitting mechanism](https://webpack.js.org/guides/code-splitting/) is used to keep code for each page in a separate loadable module. Doing so is by no mean mandatory. You can also provide a non-asynchronous function and use `require()` to include the module.
+
+The parameter `module` is not special. It's simply a name used by the example app. All the route manager does is call this function.
+
+### Custom matching
+
+In lieu of a string pattern, you can supply an object containing two functions: `from()` and `to()`. The route manager invokes `from()` when it tries to match a URL to a route. It invokes `to()` when it forms a URL. For example, the code can be used to capture the rest of the path, which isn't possible using the default mechanism:
+
+```javascript
+class WikiPath {
+    static from(urlParts, params) {
+        let regExp = /^\/wiki\/(.*)/;
+        let match = regExp.exec(urlParts.path);
+        if (match) {
+            params.pagePath = match[1];
+            return true;
+        }
+    }
+
+    static to(params) {
+        return `/wiki/${params.pagePath}`;
+    }
+}
+```
+
+The route manager will not perform typecasting on parameters extracted in this manner.
+
+### Custom typecasting
+
+You can perform more sophisticated typecasting by reference an object with `from()` and `to()` methods in `params`. The following code converts a string to an array of `Number` and back:
+
+```javascript
+class NumberArray {
+    static from(s) {
+        if (s) {
+            return s.split(',').map(parseInt);
+        } else {
+            return [];
+        }
+    }
+
+    static to(a) {
+        return a.join(',');
+    }
+}
+```
+
 ## Rewrite rules
 
-A rewrite rule is an object containing two functions: `from()` and `to()`. The route manager invokes `from()` before it tries to match a URL to a route. It invokes `to()` when it forms a URL (i.e. when `find()` is called). Both functions receives `urlParts` and `context` as arguments
+Rewrite rules let you extract parameters from URL and save them the route manager's rewrite context. This is useful in situations when you have parameters that are applicable to all routes. For example, suppose we are building a CMS that uses Git as a backend. By default, the app would fetch data from the HEAD of the master branch. The end user can also view data from a different branch or a commit earlier in time. Instead of adding these parameters to every route, we can use a rewrite rule to extract them from the URL if it begins with `/@<branch>:<commit>`. Our app can then obtain the branch and commit ID from the route manager's `context` property.
+
+A rewrite rule is an object containing two functions: `from()` and `to()`. The route manager invokes `from()` before it tries to match a URL to a route. It invokes `to()` when it forms a URL. The rule for our hypothetical app might something look like this:
+
+```javascript
+class ExtractCommitID {
+    static from(urlParts, context) {
+        let regExp = /^\/@([^\/]+)/;
+        let match = regExp.exec(urlParts.path);
+        if (match) {
+            let parts = match[1].split(':');
+            context.branch = parts[0];
+            context.commit = parts[1] || 'HEAD';
+            urlParts.path = urlParts.path.substr(match[0].length) || '/';
+        } else {
+            context.branch = 'master';
+            context.commit = 'HEAD';
+        }
+    }
+
+    static to(urlParts, context) {
+        if (context.branch !== 'master' || context.commit !== 'HEAD') {
+            let parts = [ context.branch ];
+            if (context.commit !== 'HEAD') {
+                parts.push(context.commit);
+            }
+            urlParts.path = `/@` + parts.join(':') + urlParts.path;
+        }
+    }
+}
+```
+
+`urlParts` is an object containing the different parts of a URL: `path`, `query`, and `hash`. Typically, `from()` would remove the part of the path that it's looking for.
+
+When a new context isn't provided to `find()`, it'll use the existing one. That means once the user clicks a link with a branch specified, all links will specify it automatically.
+
+Multiple rules can be supplied to the route manager. If a rewrite function wishes to prevent subsequent rules from coming into play, it should return `false`.
+
+## Properties
+
+**Concerning the current route:**
+
+* `context` - the current rewrite context
+* `name` - the name of the route
+* `params` - parameters extracted from the URL
+* `route` - the route definition object
+
+**Concerning the current URL:**
+
+* `hash` - the hash  (without leading '#')
+* `path` - the path part
+* `query` - the query variables
+* `search` - the query string (with leading '?')
+* `url` - the URL itself
 
 ## Methods
 
