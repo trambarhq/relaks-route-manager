@@ -61,41 +61,6 @@ describe('#fill()', function() {
             q: 'cat dog',
         });
     })
-    it ('should fill hash with multiple parameters', function() {
-        var options = {
-            routes: {
-                'news-page': {
-                    path: '/news/',
-                    params: { storyID: Number, reactionID: Number },
-                    hash: [ 'S${storyID}', 'R${reactionID}' ],
-                }
-            },
-        };
-        var component = new RelaksRouteManager(options);
-        var urlParts = component.fill('news-page', {
-            storyID: 222,
-            reactionID: 444,
-        });
-        expect(urlParts).to.have.property('path').that.equals('/news/');
-        expect(urlParts).to.have.property('hash').that.equals('S222R444');
-    })
-    it ('should omit missing parameter from hash', function() {
-        var options = {
-            routes: {
-                'news-page': {
-                    path: '/news/',
-                    params: { storyID: Number, reactionID: Number },
-                    hash: [ 'S${storyID}', 'R${reactionID}' ],
-                }
-            },
-        };
-        var component = new RelaksRouteManager(options);
-        var urlParts = component.fill('news-page', {
-            reactionID: 444,
-        });
-        expect(urlParts).to.have.property('path').that.equals('/news/');
-        expect(urlParts).to.have.property('hash').that.equals('R444');
-    })
     it ('should place empty string in query', function() {
         var options = {
             routes: {

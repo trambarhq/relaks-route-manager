@@ -852,19 +852,7 @@ function matchTemplate(urlPart, template, types, params, isPath) {
     if (urlPart === undefined || !template) {
         return false;
     }
-    if (template instanceof Array) {
-        var match = false;
-        for (var i = 0; i < template.length; i++) {
-            var t = template[i];
-            if (matchTemplate(urlPart, t, types, params, isPath)) {
-                match = true;
-                if (isPath) {
-                    break;
-                }
-            }
-        }
-        return match;
-    } else if (typeof(template) === 'object') {
+    if (typeof(template) === 'object') {
         if (template.from) {
             return template.from(urlPart, params);
         }
@@ -898,17 +886,7 @@ function matchTemplate(urlPart, template, types, params, isPath) {
 }
 
 function fillTemplate(template, types, params, always) {
-    if (template instanceof Array) {
-        var tokens = [];
-        for (var i = 0; i < template.length; i++) {
-            var t = template[i];
-            var s = fillTemplate(t, types, params, always);
-            if (s) {
-                tokens.push(s);
-            }
-        }
-        return tokens.join('');
-    } else if (typeof(template) === 'object') {
+    if (typeof(template) === 'object') {
         if (template.to) {
             return template.to(params);
         }

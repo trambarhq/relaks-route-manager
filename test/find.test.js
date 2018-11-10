@@ -27,17 +27,16 @@ describe('#find()', function() {
             routes: {
                 'news-page': {
                     path: '/news/',
-                    params: { storyID: Number, reactionID: Number },
-                    hash: [ 'S${storyID}', 'R${reactionID}' ],
+                    params: { storyID: Number },
+                    hash: 'S${storyID}',
                 }
             },
         };
         var component = new RelaksRouteManager(options);
         var url = component.find('news-page', {
             storyID: 222,
-            reactionID: 444,
         });
-        expect(url).to.equal('/news/#S222R444');
+        expect(url).to.equal('/news/#S222');
     })
     it ('should prepend path with base path', function() {
         var options = {
