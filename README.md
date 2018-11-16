@@ -35,9 +35,37 @@ let options = {
     useHashFallback: true,
 };
 let routeManager = new RouteManager(options);
-routeManager.addEventListener('change', handleRouteChange);
-
+routeManager.activate();
+await routeManager.start();
 ```
+
+```javascript
+/* Root-level React component */
+class Application extends PureComponent {
+    constructor(props) {
+        super(props);
+        let { routeManager } = props;
+        this.state = {
+            route: new Route(routeManager);
+        }
+    }
+
+    componentDidMount() {
+        let { routeManager } = this.props;
+        routeManager.addEventListener('change', this.handleRouteChange);
+    }
+
+    /* ... */
+
+    handleRouteChange = (evt) => {
+        let { routeManager } = this.props;
+        let route = new Route(routeManager);
+        this.setState({ route });
+    }
+}
+```
+
+Components are expected to access functionalities of the route manager through a proxy object--`Route` in the sample code above. See the documentation of Relaks for an [explanation](https://github.com/chung-leong/relaks#proxy-objects). A [default implementation](https://github.com/chung-leong/relaks-route-manager/blob/master/proxy.js) is provided for reference purpose. It's recommended that you create your own.
 
 ## Options
 
@@ -195,7 +223,9 @@ You can perform more sophisticated typecasting by reference an object with `from
 class NumberArray {
     static from(s) {
         if (s) {
-            return s.split(',').map(parseInt);
+            return s.split(',').map((s) => {
+                return parseInt(s);
+            });
         } else {
             return [];
         }
