@@ -33,6 +33,7 @@ let options = {
     rewrites: rewriteRules,
     preloadingDelay: 2000,
     useHashFallback: true,
+    reloadFaultyScript: true,
 };
 let routeManager = new RouteManager(options);
 routeManager.activate();
@@ -71,6 +72,7 @@ Components are expected to access functionalities of the route manager through a
 
 * [basePath](#basepath)
 * [preloadingDelay](#preloadingdelay)
+* [reloadFaultyScript](#reloadFaultyScript)
 * [trackLinks](#tracklinks)
 * [trackLocation](#tracklocation)
 * [useHashFallback](#usehashfallback)
@@ -84,6 +86,12 @@ When specified, create a rewrite rule that strips the base path from the URL pri
 Amount of time (in milliseconds) to wait before initiating page preloading. Relevant only for apps that employ code-splitting. When specified, the route manager will call `load()` of every route after the delay.
 
 Default value: `NaN` (no preploading of pages)
+
+### reloadFaultyScript
+
+Automatically force the page to reload when WebPack fails to load a JavaScript module. The [Navigation Timing API](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceNavigation) is used to check whether the page has already reloaded, so that the page won't reload repeatedly when the error cannot actually be resolved.
+
+Default value: `false`
 
 ### trackLinks
 

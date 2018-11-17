@@ -7,6 +7,7 @@ var defaultOptions = {
     trackLinks: (SSR) ? false : true,
     trackLocation: (SSR) ? false : true,
     preloadingDelay: NaN,
+    reloadFaultyScript: false,
     basePath: '',
 };
 
@@ -610,6 +611,7 @@ prototype.rewrite = function(direction, urlParts, context) {
  */
 prototype.load = function(match) {
     try {
+        var _this = this;
         var result;
         var routeDef = (match) ? this.routes[match.name] : null;
         if (!routeDef) {
@@ -618,7 +620,22 @@ prototype.load = function(match) {
         if (routeDef.load) {
             result = routeDef.load(match);
         }
-        return Promise.resolve(result);
+        return Promise.resolve(result).catch(function(err) {
+            if (_this.options.reloadFaultyScript) {
+                if (/Loading chunk/i.test(err.message)) {
+                    if (typeof(performance) === 'object' && typeof(performance.navigation) === 'object') {
+                        if (performance.navigation.type !== 1) {
+                            if (navigator.onLine) {
+                                // force reloading from server
+                                console.log('Reloading page...');
+                                location.reload(true);
+                            }
+                        }
+                    }
+                }
+            }
+            throw err;
+        });
     } catch (err) {
         return Promise.reject(err);
     }
