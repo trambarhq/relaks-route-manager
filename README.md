@@ -311,6 +311,11 @@ Multiple rules can be supplied to the route manager. If a rewrite function wishe
 * [addEventListener](#addeventlistener)
 * [removeEventListener](#removeeventlistener)
 
+**Activation**
+
+* [activate()](#activate)
+* [deactivate()](#deactivate)
+
 **Navigation:**
 
 * [back](#back)
@@ -347,6 +352,22 @@ function removeEventListener(name: string, handler: function): void
 Remove an event listener from the route manager. `handler` and `type` must match what was given to `addEventListener()`.
 
 Inherited from [relaks-event-emitter](https://github.com/chung-leong/relaks-event-emitter).
+
+### activate
+
+```typescript
+function activate(): void
+```
+
+Activate the route manager, attaching event listeners to the DOM.
+
+### deactivate
+
+```typescript
+function deactivate(): void
+```
+
+Deactivate the route manager, removing event listeners from the DOM.
 
 ### back
 
