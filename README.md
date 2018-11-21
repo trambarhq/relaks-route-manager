@@ -1,6 +1,6 @@
 Relaks Route Manager
 --------------------
-Relaks Route Manager is a simple, flexible route manager designed for React applications that uses [Relaks](https://github.com/chung-leong/relaks). It monitors the browser's current location using the [History API](https://developer.mozilla.org/en-US/docs/Web/API/History_API) and extract parameters from the URL. You can then vary the contents displayed by your app based on these parameters. In addition, it traps clicks on hyperlinks, automatically handling page requests internally.
+Relaks Route Manager is a simple, flexible route manager designed for React applications that use [Relaks](https://github.com/chung-leong/relaks). It monitors the browser's current location using the [History API](https://developer.mozilla.org/en-US/docs/Web/API/History_API) and extract parameters from the URL. You can then vary the contents displayed by your app based on these parameters. In addition, it traps clicks on hyperlinks, automatically handling page requests internally.
 
 The library has a promise-based asynchronous interface. It's specifically designed with WebPack code-splitting in mind. It's also designed to be used in isomorphic React apps.
 
@@ -89,7 +89,7 @@ Default value: `NaN` (no preploading of pages)
 
 ### reloadFaultyScript
 
-Automatically force the page to reload when WebPack fails to load a JavaScript module. The [Navigation Timing API](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceNavigation) is used to check whether the page has already reloaded, so that the page won't reload repeatedly when the error cannot actually be resolved.
+Force the document to reload when WebPack fails to load a JavaScript module. The [Navigation Timing API](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceNavigation) is used to check whether the document has already been refreshed, so that the document will not continually reload if the error cannot be resolved by reloading.
 
 Default value: `false`
 
@@ -111,11 +111,11 @@ Place the URL of the app's current route in the hash portion of the browser loca
 
 `https://example.com/news/`
 
-When it's true, the location will like this:
+When it's true, the location will look like this:
 
 `https://example.com/#/news/`
 
-Hash fallback is useful when you're unable to add necessary rewrite rules to the web server in order to enable client-side path changes. It's the only way to use this library when your app is running as a local file (in Cordova or Electron, for example).
+Hash fallback is useful when you're unable to add rewrite rules to the web server in order to enable client-side path changes. It's the only way to use this library when your app is running as a local file (in Cordova or Electron, for example).
 
 Default value: `false`
 
@@ -202,13 +202,13 @@ The parameter `module` is not special. It's simply a name used by the example ap
 
 ### Custom matching
 
-In lieu of a string pattern, you can supply an object containing two functions: `from()` and `to()`. The route manager invokes `from()` when it tries to match a URL to a route. It invokes `to()` when it forms a URL. For example, the code can be used to capture the rest of the path, which isn't possible using the default mechanism:
+In lieu of a string pattern, you can supply an object containing two functions: `from()` and `to()`. The route manager invokes `from()` when it tries to match a URL to a route. It invokes `to()` when it forms a URL. For example, the code below can be used to capture the rest of the path, something that isn't possible using the default mechanism:
 
 ```javascript
 class WikiPath {
-    static from(urlParts, params) {
+    static from(path, params) {
         let regExp = /^\/wiki\/(.*)/;
-        let match = regExp.exec(urlParts.path);
+        let match = regExp.exec(path);
         if (match) {
             params.pagePath = match[1];
             return true;
@@ -225,7 +225,7 @@ The route manager will not perform typecasting on parameters extracted in this m
 
 ### Custom typecasting
 
-You can perform more sophisticated typecasting by reference an object with `from()` and `to()` methods in `params`. The following code converts a string to an array of `Number` and back:
+You can perform more sophisticated typecasting by placing an object with `from()` and `to()` methods in `params`. The following code converts a string to an array of `Number` and back:
 
 ```javascript
 class NumberArray {
@@ -247,7 +247,7 @@ class NumberArray {
 
 ## Rewrite rules
 
-Rewrite rules let you extract parameters from URL and save them the route manager's rewrite context. This is useful in situations when you have parameters that are applicable to all routes. For example, suppose we are building a CMS that uses Git as a backend. By default, the app would fetch data from the HEAD of the master branch. The end user can also view data from a different branch or a commit earlier in time. Instead of adding these parameters to every route, we can use a rewrite rule to extract them from the URL if it begins with `/@<branch>:<commit>`. Our app can then obtain the branch and commit ID from the route manager's `context` property.
+Rewrite rules let you extract parameters from the URL and save them the route manager's rewrite context. They're useful in situations when you have parameters that are applicable to all routes. For example, suppose we are building a CMS that uses Git as a backend. By default, the app would fetch data from the HEAD of the master branch. The end user can also view data from a different branch or a commit earlier in time. Instead of adding these parameters to every route, we can use a rewrite rule to extract them from the URL if it begins with `/@<branch>:<commit>`. Our app can then obtain the branch and commit ID from the route manager's `context` property.
 
 A rewrite rule is an object containing two functions: `from()` and `to()`. The route manager invokes `from()` before it tries to match a URL to a route. It invokes `to()` when it forms a URL. The rule for our hypothetical app might something look like this:
 
@@ -257,11 +257,13 @@ class ExtractCommitID {
         let regExp = /^\/@([^\/]+)/;
         let match = regExp.exec(urlParts.path);
         if (match) {
+            // e.g. https://example.net/@master:/news/
             let parts = match[1].split(':');
             context.branch = parts[0];
             context.commit = parts[1] || 'HEAD';
             urlParts.path = urlParts.path.substr(match[0].length) || '/';
         } else {
+            // e.g. https://example.net/news/
             context.branch = 'master';
             context.commit = 'HEAD';
         }
@@ -378,9 +380,9 @@ async function push(name: string, params?: object, newContext?: object): boolean
 
 Change the route, saving the previous route in browsing history. `name` is the name of desired page (i.e. a key in the routing table), while `params` are the route parameters.
 
-If `newContext` is supplied, it'll be merged with the existing rewrite context and becomes the new context. Otherwise the existing is reused.
+If `newContext` is supplied, it'll be merged with the existing rewrite context and becomes the new context. Otherwise the existing context is reused.
 
-No checks are done on `params`. It's possible to supply parameters that would not appear in a route's URL.
+No checks are done on `params`. It's possible to supply parameters that could not appear in a route's URL.
 
 The returned promise is fulfilled with `false` when `evt.preventDefault()` is called during `beforechange`.
 
@@ -432,7 +434,7 @@ Match a URL with a route, returning a object containing the following fields:
 
 `url` should be an internal, relative URL.
 
-An exception is thrown if not match is found.
+An exception is thrown if no match is found.
 
 ### preload
 
