@@ -184,7 +184,7 @@ The following shows a route where parameters are extracted from all parts of a U
         },
         load: async (match) => {
             match.params.module = await import('pages/dog-page' /* webpackChunkName: "dog-page" */);
-        }
+        },
         authentication: true,
     }
 }
@@ -196,9 +196,26 @@ The route definition may contain custom fields. In the example above, we're spec
 
 ### Loading a route
 
-The `load()` function is meant to be used to load JavaScript code used by the route on demand. In the example above, [WebPack's code-splitting mechanism](https://webpack.js.org/guides/code-splitting/) is used to keep code for each page in a separate loadable module. Doing so is by no mean mandatory. You can also provide a non-asynchronous function and use `require()` to include the module.
+Once the route manager finds the correct entry for a route, it'll invoke its `load()` function. The function will receive an object containing `params` and `context`, as well as properties of the URL, such as `path` and `query`. If on-demand loading is employed, the function should initiate the code import and return a promise. The example above show how that's done using ES7 async/await syntax. It would look as follows if we write it in old-fashioned JavaScript:
 
-The parameter `module` is not special. It's simply a name used by the example app. All the route manager does is call this function.
+```javascript
+load: function(match) {
+    return import('pages/dog-page' /* webpackChunkName: "dog-page" */).then(function(module) {
+        match.params.module = module;
+    });
+},
+```
+
+The `/* webpackChunkName: ... */` comment gives the module module a name. Without it the JavaScript file would have an unintuitive numeric name. Consult the [WebPack documentation](https://webpack.js.org/guides/code-splitting/) for more details about code-splitting.
+
+The parameter `module` is not special. It's simply a name used by the example app. The route manager does not doing anything beyond calling the function. It's up to your code to make correct use of the parameters. Imagine your app have different navigation bar depending on which page the visitor is in. Your `load()` functions might look something like the following:
+
+```javascript
+load: async (match) => {
+    match.params.page = await import('pages/television' /* webpackChunkName: "television-page" */);
+    match.params.nav = await import('nav/electronics' /* webpackChunkName: "electronics-nav" */);
+},
+```
 
 ### Custom matching
 
