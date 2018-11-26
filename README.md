@@ -518,10 +518,10 @@ Permit the change to occur.
 * `preventDefault()` - stop the route change from happening
 * `stopImmediatePropagation()` - stop other listeners from receiving the event
 
-An event listener can check `evt.route` to see if a route requires authentication. If so, it should call `evt.postponeDefault()` with a promise that fulfills to `true` after authentication--or to `false` if the user declines. The application should then bring up an user interface for logging in. If that involves a different page, use `evt.substitute()` to change the route. The following describes such a login process:
+If an event listener decides that the visitor cannot immediately proceed to the route, it can call `evt.postponeDefault()` to defer the change. The method expects a promise. If the promise is fulfilled with anything other than `false`, the route change will occur then. While the promise is pending, `evt.substitute()` can be used to switch to a page where the visitor can perform the necessary action. The following describes a login process involving a login page:
 
 1. The user clicks on a link to an access-controlled page, triggering a `beforechange` event.
-2. The `beforechange` handler notices the route requires authentication. It calls `evt.postponeDefault()` to block the change, then `evt.substitute()` to redirect to the login page.
+2. The `beforechange` handler notices the route requires authentication. It calls `evt.postponeDefault()` to defer the change, then `evt.substitute()` to redirect to the login page.
 3. `evt.substitute()` triggers a `change` event. The app rerenders to show the login page.
 4. The visitor logs in.
 5. The promise given to `evt.postponeDefault()` is fulfilled. The route changes to the intended, access-controlled page.
@@ -529,7 +529,7 @@ An event listener can check `evt.route` to see if a route requires authenticatio
 A call to `start()` will also trigger the `beforechange` event. Suppose a visitor has enter the URL of an access-controlled page into the browser location bar. The following sequence would occur:
 
 1. `start()` triggers a `beforechange` event.
-2. The `beforechange` handler notices the route requires authentication. It calls `evt.postponeDefault()` to block the change, then `evt.substitute()` to redirect to the login page.
+2. The `beforechange` handler notices the route requires authentication. It calls `evt.postponeDefault()` to defer the change, then `evt.substitute()` to redirect to the login page.
 3. `evt.substitute()` triggers a `change` event. The promise returned by `start()` is fulfilled.
 4. The application's UI code starts (i.e. the root React component is rendered), with the login page as the current route.
 5. The visitor logs in.
