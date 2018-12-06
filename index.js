@@ -777,15 +777,18 @@ prototype.handleLinkClick = function(evt) {
     if (evt.button === 0 && !evt.defaultPrevented) {
         var link = getLink(evt.target);
         if (link && !link.target && !link.download) {
-            var url = this.getLocationURL(link);
-            if (url) {
-                var match = this.match(url);
-                if (match) {
-                    var time = getTimeStamp();
-                    evt.preventDefault();
-                    evt.stopPropagation();
-                    this.apply(match, time, true, false);
+            try {
+                var url = this.getLocationURL(link);
+                if (url) {
+                    var match = this.match(url);
+                    if (match) {
+                        var time = getTimeStamp();
+                        evt.preventDefault();
+                        evt.stopPropagation();
+                        this.apply(match, time, true, false);
+                    }
                 }
+            } catch (err) {
             }
         }
     }
