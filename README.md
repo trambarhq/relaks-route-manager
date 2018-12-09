@@ -1,6 +1,6 @@
 Relaks Route Manager
 --------------------
-Relaks Route Manager is a simple, flexible route manager designed for React applications that use [Relaks](https://github.com/chung-leong/relaks). It monitors the browser's current location using the [History API](https://developer.mozilla.org/en-US/docs/Web/API/History_API) and extract parameters from the URL. You can then vary the contents displayed by your app based on these parameters. In addition, it traps clicks on hyperlinks, automatically handling page requests internally.
+Relaks Route Manager is a simple, flexible route manager designed for React applications that use [Relaks](https://github.com/trambarhq/relaks). It monitors the browser's current location using the [History API](https://developer.mozilla.org/en-US/docs/Web/API/History_API) and extract parameters from the URL. You can then vary the contents displayed by your app based on these parameters. In addition, it traps clicks on hyperlinks, automatically handling page requests internally.
 
 The library has a promise-based asynchronous interface. It's specifically designed with WebPack code-splitting in mind. It's also designed to be used in isomorphic React apps.
 
@@ -66,7 +66,7 @@ class Application extends PureComponent {
 }
 ```
 
-Components are expected to access functionalities of the route manager through a proxy object--`Route` in the sample code above. See the documentation of Relaks for an [explanation](https://github.com/chung-leong/relaks#proxy-objects). A [default implementation](https://github.com/chung-leong/relaks-route-manager/blob/master/proxy.js) is provided for reference purpose. It's recommended that you create your own.
+Components are expected to access functionalities of the route manager through a proxy object--`Route` in the sample code above. See the documentation of Relaks for an [explanation](https://github.com/trambarhq/relaks#proxy-objects). A [default implementation](https://github.com/trambarhq/relaks-route-manager/blob/master/proxy.js) is provided for reference purpose. It's recommended that you create your own.
 
 ## Options
 
@@ -129,7 +129,7 @@ A hash table (i.e. an object) containing your app's routes. See [routing table](
 
 ## Routing table
 
-Here's a section of the routing table used in [one of the examples](https://github.com/chung-leong/relaks-starwars-example-sequel):
+Here's a section of the routing table used in [one of the examples](https://github.com/trambarhq/relaks-starwars-example-sequel):
 
 ```javascript
 let routes = {
@@ -358,7 +358,7 @@ function addEventListener(name: string, handler: function, beginning?:boolean): 
 
 Add an event listener to the route manager. `handler` will be called whenever events of `type` occur. When `beginning` is true, the listener will be place before any existing listeners. Otherwise it's added at the end of the list.
 
-Inherited from [relaks-event-emitter](https://github.com/chung-leong/relaks-event-emitter).
+Inherited from [relaks-event-emitter](https://github.com/trambarhq/relaks-event-emitter).
 
 ### removeEventListener
 
@@ -368,7 +368,7 @@ function removeEventListener(name: string, handler: function): void
 
 Remove an event listener from the route manager. `handler` and `type` must match what was given to `addEventListener()`.
 
-Inherited from [relaks-event-emitter](https://github.com/chung-leong/relaks-event-emitter).
+Inherited from [relaks-event-emitter](https://github.com/trambarhq/relaks-event-emitter).
 
 ### activate
 
@@ -551,8 +551,8 @@ The `change` event is emitted after a route change has occurred, meaning the rou
 
 ## Examples
 
-* [Starwars API: Episode V](https://github.com/chung-leong/relaks-starwars-example-sequel) - sequel to the first Starwars API example
-* [Django todo list](https://github.com/chung-leong/relaks-django-todo-example) - demonstrates authentication and data saving using [relaks-django-data-source](https://github.com/chung-leong/relaks-django-data-source)
+* [Starwars API: Episode V](https://github.com/trambarhq/relaks-starwars-example-sequel) - sequel to the first Starwars API example
+* [Django todo list](https://github.com/trambarhq/relaks-django-todo-example) - demonstrates authentication and data saving using [relaks-django-data-source](https://github.com/trambarhq/relaks-django-data-source)
 
 ## License
 
