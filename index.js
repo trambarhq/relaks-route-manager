@@ -824,7 +824,7 @@ function getURLTemplateRegExp(template, types, isPath) {
     }
     var pattern = template.replace(variableRegExp, function(match) {
         var variable = match.substr(2, match.length - 3)
-        var variableType = types[variable];
+        var variableType = (types) ? types[variable] : String;
         var variablePattern;
         if (variableType === Number || variableType === Boolean) {
             variablePattern = '[\\d\\.]*';
@@ -889,7 +889,7 @@ function matchTemplate(urlPart, template, types, params, isPath) {
         var values = {};
         for (var i = 0; i < variables.length; i++) {
             var variable = variables[i];
-            var type = types[variable];
+            var type = (types) ? types[variable] : String;
             var value = castValue(matches[i + 1], type);
             if (value !== undefined) {
                 values[variable] = value;
@@ -916,7 +916,7 @@ function fillTemplate(template, types, params, always) {
         for (var i = 0; i < variables.length; i++) {
             var variable = variables[i];
             var value = params[variable];
-            var type = types[variable];
+            var type = (types) ? types[variable] : String;
             if (value !== undefined || always) {
                 var string = stringifyValue(value, type);
                 urlPath = urlPath.replace('${' + variable + '}', string);
