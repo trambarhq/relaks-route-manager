@@ -42,7 +42,7 @@ await routeManager.start();
 
 ```javascript
 /* Root-level React component */
-class Application extends PureComponent {
+class FrontEnd extends PureComponent {
     constructor(props) {
         super(props);
         let { routeManager } = props;
@@ -323,10 +323,11 @@ Multiple rules can be supplied to the route manager. If a rewrite function wishe
 
 ## Methods
 
-**Event listeners:**
+**Event handling:**
 
-* [addEventListener](#addeventlistener)
-* [removeEventListener](#removeeventlistener)
+* [addEventListener()](#addeventlistener)
+* [removeEventListener()](#removeeventlistener)
+* [waitForEvent()](#waitforevent)
 
 **Activation**
 
@@ -335,42 +336,52 @@ Multiple rules can be supplied to the route manager. If a rewrite function wishe
 
 **Navigation:**
 
-* [back](#back)
-* [change](#change)
-* [push](#push)
-* [replace](#replace)
-* [start](#start)
+* [back()](#back)
+* [change()](#change)
+* [push()](#push)
+* [replace()](#replace)
+* [start()](#start)
 
 **Look-up:**
 
-* [find](#find)
-* [match](#match)
+* [find()](#find)
+* [match()](#match)
 
 **Others:**
 
-* [preload](#preload)
+* [preload()](#preload)
 
-### addEventListener
+### addEventListener()
 
 ```typescript
-function addEventListener(name: string, handler: function, beginning?:boolean): void
+function addEventListener(type: string, handler: function, beginning?:boolean): void
 ```
 
 Add an event listener to the route manager. `handler` will be called whenever events of `type` occur. When `beginning` is true, the listener will be place before any existing listeners. Otherwise it's added at the end of the list.
 
 Inherited from [relaks-event-emitter](https://github.com/trambarhq/relaks-event-emitter).
 
-### removeEventListener
+### removeEventListener()
 
 ```typescript
-function removeEventListener(name: string, handler: function): void
+function removeEventListener(type: string, handler: function): void
 ```
 
 Remove an event listener from the route manager. `handler` and `type` must match what was given to `addEventListener()`.
 
 Inherited from [relaks-event-emitter](https://github.com/trambarhq/relaks-event-emitter).
 
-### activate
+### waitForEvent()
+
+```typescript
+async function waitForEvent(type: string): Event
+```
+
+Return a promise that is fulfilled when an event of the specified type occurs.
+
+Inherited from [relaks-event-emitter](https://github.com/trambarhq/relaks-event-emitter).
+
+### activate()
 
 ```typescript
 function activate(): void
@@ -378,7 +389,7 @@ function activate(): void
 
 Activate the route manager, attaching event listeners to the DOM.
 
-### deactivate
+### deactivate()
 
 ```typescript
 function deactivate(): void
@@ -386,7 +397,7 @@ function deactivate(): void
 
 Deactivate the route manager, removing event listeners from the DOM.
 
-### back
+### back()
 
 ```typescript
 async function back(): void
@@ -394,7 +405,7 @@ async function back(): void
 
 Go back to the previous page. The function will reject attempts to go beyond the browsing history of the app.
 
-### change
+### change()
 
 ```typescript
 async function change(url: string, options?: object): boolean
@@ -410,7 +421,7 @@ Use a URL to change the route. By default, the previous route is pushed into bro
 
 Generally, you would use `push()` or `replace()` instead when changing the route programmatically.
 
-### push
+### push()
 
 ```typescript
 async function push(name: string, params?: object, newContext?: object): boolean
@@ -424,7 +435,7 @@ No checks are done on `params`. It's possible to supply parameters that could no
 
 The returned promise is fulfilled with `false` when `evt.preventDefault()` is called during `beforechange`.
 
-### replace
+### replace()
 
 ```typescript
 async function replace(name: string, params?: object, newContext?: object): boolean
@@ -432,7 +443,7 @@ async function replace(name: string, params?: object, newContext?: object): bool
 
 Change the route, displacing the previous route.
 
-### start
+### start()
 
 ```typescript
 async function start(url?: string): boolean
@@ -442,7 +453,7 @@ Start the route manager, using `url` for the initial route. If `url` is omitted 
 
 The promise returned by this method is fulfilled when a `change` event occurs. This can happen either because the intended route is reached or if `evt.postponeDefault()` and `evt.substitute()` are used during a `beforechange` event.
 
-### find
+### find()
 
 ```typescript
 function find(name: string, params?: object, newContext?: object): string
@@ -452,7 +463,7 @@ Find the URL of a route. `name` is the name of desired page, while `params` are 
 
 If `newContext` is supplied, it'll be merged with the existing context and used for rewrite the URL. Otherwise the existing context is used.
 
-### match
+### match()
 
 ```typescript
 function match(url: string): object
@@ -474,7 +485,7 @@ Match a URL with a route, returning a object containing the following fields:
 
 An exception is thrown if no match is found.
 
-### preload
+### preload()
 
 ```typescript
 async function preload(): void
@@ -552,7 +563,6 @@ The `change` event is emitted after a route change has occurred, meaning the rou
 ## Examples
 
 * [Starwars API: Episode V](https://github.com/trambarhq/relaks-starwars-example-sequel) - sequel to the first Starwars API example
-* [Django todo list](https://github.com/trambarhq/relaks-django-todo-example) - demonstrates authentication and data saving using [relaks-django-data-source](https://github.com/trambarhq/relaks-django-data-source)
 
 ## License
 
