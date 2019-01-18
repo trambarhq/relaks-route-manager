@@ -1,5 +1,5 @@
 Relaks Route Manager
---------------------
+====================
 Relaks Route Manager is a simple, flexible route manager designed for React applications that use [Relaks](https://github.com/trambarhq/relaks). It monitors the browser's current location using the [History API](https://developer.mozilla.org/en-US/docs/Web/API/History_API) and extract parameters from the URL. You can then vary the contents displayed by your app based on these parameters. In addition, it traps clicks on hyperlinks, automatically handling page requests internally.
 
 The library has a promise-based asynchronous interface. It's specifically designed with WebPack code-splitting in mind. It's also designed to be used in isomorphic React apps.
