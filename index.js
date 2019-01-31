@@ -47,13 +47,24 @@ function RelaksRouteManager(options) {
         if (options.basePath) {
             var basePathRewrite = {
                 from: function(urlParts, context) {
-                    var newPath = getRelativePath(options.basePath, urlParts.path);
-                    if (newPath) {
-                        urlParts.path = newPath;
+                    var path = urlParts.path;
+                    var base = options.basePath;
+                    if (base.charAt(base.length - 1) === '/') {
+                        base = base.substr(0, base.length - 1);
+                    }
+                    if (path.substr(0, base.length) === base) {
+                        if (path.charAt(base.length) === '/') {
+                            urlParts.path = path.substr(base.length);
+                        }
                     }
                 },
                 to: function(urlParts, context) {
-                    urlParts.path = options.basePath + urlParts.path;
+                    var path = urlParts.path;
+                    var base = options.basePath;
+                    if (base.charAt(base.length - 1) === '/') {
+                        base = base.substr(0, base.length - 1);
+                    }
+                    urlParts.path = base + path;
                 },
             };
             this.addRewrites([ basePathRewrite ]);
@@ -328,13 +339,7 @@ prototype.restore = function() {
  */
 prototype.find = function(name, params, newContext) {
     var match = this.generate(name, params, newContext);
-    var url = match.url;
-    if (this.options.useHashFallback) {
-        if (url != undefined) {
-            url = '#' + url;
-        }
-    }
-    return url;
+    return this.applyFallback(match.url);
 };
 
 /**
@@ -382,7 +387,7 @@ prototype.match = function(url) {
         throw new RelaksRouteManagerError(400, 'Invalid URL');
     }
     // perform rewrites
-    var urlParts = parseURL(url);
+    var urlParts = this.parse(url);
     var context = {};
     this.rewrite('from', urlParts, context);
 
@@ -418,6 +423,36 @@ prototype.match = function(url) {
 };
 
 /**
+ * Parse a URL into different parts
+ *
+ * @param  {String} url
+ *
+ * @return {Object}
+ */
+prototype.parse = function(url) {
+    if (typeof(url) !== 'string') {
+        throw new RelaksRouteManagerError(400, 'Invalid URL');
+    }
+    var path = url;
+    var hash = '';
+    var hashIndex = path.indexOf('#');
+    if (hashIndex !== -1) {
+        hash = path.substr(hashIndex + 1);
+        path = path.substr(0, hashIndex);
+    }
+    var query = {};
+    var queryIndex = path.indexOf('?');
+    var search = '';
+    if (queryIndex !== -1) {
+        search = path.substr(queryIndex);
+        query = parseQueryString(search.substr(1));
+        path = path.substr(0, queryIndex);
+    }
+    return { path: path, query: query, search: search, hash: hash };
+}
+
+
+/**
  * Generate a match object given name a params and possibly a context
  *
  * @param  {String} name
@@ -440,10 +475,29 @@ prototype.generate = function(name, params, newContext) {
         // copy the URL parts first, before changing them in rewrite()
         assign(match, urlParts);
         this.rewrite('to', urlParts, context);
-        match.url = composeURL(urlParts);
+        match.url = this.compose(urlParts);
     }
     return match;
 };
+
+/**
+ * Compose a URL from its constituent parts
+ *
+ * @param  {Object} urlParts
+ *
+ * @return {String}
+ */
+prototype.compose = function(urlParts) {
+    var url = urlParts.path;
+    var queryString = composeQueryString(urlParts.query);
+    if (queryString) {
+        url += '?' + queryString;
+    }
+    if (urlParts.hash) {
+        url += '#' + urlParts.hash;
+    }
+    return url;
+}
 
 /**
  * Load necessary module(s) for a route, append to history, set the state,
@@ -756,9 +810,7 @@ prototype.setLocationURL = function(url, state, replace) {
     if (this.options.trackLocation) {
         var currentURL = this.getLocationURL(location);
         if (currentURL !== url) {
-            if (this.options.useHashFallback) {
-                url = '#' + url;
-            }
+            url = this.applyFallback(url);
             if (replace) {
                 window.history.replaceState(state, '', url);
             } else {
@@ -767,6 +819,16 @@ prototype.setLocationURL = function(url, state, replace) {
         }
     }
 };
+
+prototype.applyFallback = function(url) {
+    if (this.options.useHashFallback) {
+        if (url != undefined) {
+            url = '#' + url;
+        }
+    }
+    return url;
+};
+
 
 /**
  * Called when the user clicks on the page
@@ -965,41 +1027,6 @@ function stringifyValue(value, type) {
     }
 }
 
-function getRelativePath(basePath, path) {
-    if (!basePath) {
-        return path;
-    }
-    if (path.substr(0, basePath.length) === basePath) {
-        if (path.charAt(basePath.length) === '/') {
-            return path.substr(basePath.length);
-        } else if (path === basePath) {
-            return '/';
-        }
-    }
-}
-
-function parseURL(url) {
-    if (typeof(url) !== 'string') {
-        throw new RelaksRouteManagerError(400, 'Invalid URL');
-    }
-    var path = url;
-    var hash = '';
-    var hashIndex = path.indexOf('#');
-    if (hashIndex !== -1) {
-        hash = path.substr(hashIndex + 1);
-        path = path.substr(0, hashIndex);
-    }
-    var query = {};
-    var queryIndex = path.indexOf('?');
-    var search = '';
-    if (queryIndex !== -1) {
-        search = path.substr(queryIndex);
-        query = parseQueryString(search.substr(1));
-        path = path.substr(0, queryIndex);
-    }
-    return { path: path, query: query, search: search, hash: hash };
-}
-
 function parseQueryString(queryString) {
     var values = {};
     if (queryString) {
@@ -1013,18 +1040,6 @@ function parseQueryString(queryString) {
         }
     }
     return values;
-}
-
-function composeURL(urlParts) {
-    var url = urlParts.path;
-    var queryString = composeQueryString(urlParts.query);
-    if (queryString) {
-        url += '?' + queryString;
-    }
-    if (urlParts.hash) {
-        url += '#' + urlParts.hash;
-    }
-    return url;
 }
 
 function composeQueryString(query) {
