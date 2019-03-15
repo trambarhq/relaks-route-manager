@@ -12,8 +12,8 @@ describe('RelaksRouteManagerProxy', function() {
             routes: {
                 'news-page': {
                     path: '/news/',
-                    params: { storyID: Number, reactionID: Number },
-                    hash: [ 'S${storyID}', 'R${reactionID}' ],
+                    params: { storyID: Number },
+                    hash: 'S${storyID}',
                 },
                 'story-page': {
                     path: '/story/${id}/',
@@ -21,7 +21,7 @@ describe('RelaksRouteManagerProxy', function() {
                     query: {
                         lang: '${language}'
                     },
-                    hash: [ 'P${paragraph}' ],
+                    hash: 'P${paragraph}',
                 },
             },
             basePath: '/forum'

@@ -7,6 +7,7 @@ var defaultOptions = {
     trackLinks: (SSR) ? false : true,
     trackLocation: (SSR) ? false : true,
     preloadingDelay: NaN,
+    reloadFaultyScript: false,
     basePath: '',
 };
 
@@ -46,13 +47,24 @@ function RelaksRouteManager(options) {
         if (options.basePath) {
             var basePathRewrite = {
                 from: function(urlParts, context) {
-                    var newPath = getRelativePath(options.basePath, urlParts.path);
-                    if (newPath) {
-                        urlParts.path = newPath;
+                    var path = urlParts.path;
+                    var base = options.basePath;
+                    if (base.charAt(base.length - 1) === '/') {
+                        base = base.substr(0, base.length - 1);
+                    }
+                    if (path.substr(0, base.length) === base) {
+                        if (path.charAt(base.length) === '/') {
+                            urlParts.path = path.substr(base.length);
+                        }
                     }
                 },
                 to: function(urlParts, context) {
-                    urlParts.path = options.basePath + urlParts.path;
+                    var path = urlParts.path;
+                    var base = options.basePath;
+                    if (base.charAt(base.length - 1) === '/') {
+                        base = base.substr(0, base.length - 1);
+                    }
+                    urlParts.path = base + path;
                 },
             };
             this.addRewrites([ basePathRewrite ]);
@@ -327,13 +339,7 @@ prototype.restore = function() {
  */
 prototype.find = function(name, params, newContext) {
     var match = this.generate(name, params, newContext);
-    var url = match.url;
-    if (this.options.useHashFallback) {
-        if (url != undefined) {
-            url = '#' + url;
-        }
-    }
-    return url;
+    return this.applyFallback(match.url);
 };
 
 /**
@@ -381,7 +387,7 @@ prototype.match = function(url) {
         throw new RelaksRouteManagerError(400, 'Invalid URL');
     }
     // perform rewrites
-    var urlParts = parseURL(url);
+    var urlParts = this.parse(url);
     var context = {};
     this.rewrite('from', urlParts, context);
 
@@ -417,6 +423,36 @@ prototype.match = function(url) {
 };
 
 /**
+ * Parse a URL into different parts
+ *
+ * @param  {String} url
+ *
+ * @return {Object}
+ */
+prototype.parse = function(url) {
+    if (typeof(url) !== 'string') {
+        throw new RelaksRouteManagerError(400, 'Invalid URL');
+    }
+    var path = url;
+    var hash = '';
+    var hashIndex = path.indexOf('#');
+    if (hashIndex !== -1) {
+        hash = path.substr(hashIndex + 1);
+        path = path.substr(0, hashIndex);
+    }
+    var query = {};
+    var queryIndex = path.indexOf('?');
+    var search = '';
+    if (queryIndex !== -1) {
+        search = path.substr(queryIndex);
+        query = parseQueryString(search.substr(1));
+        path = path.substr(0, queryIndex);
+    }
+    return { path: path, query: query, search: search, hash: hash };
+}
+
+
+/**
  * Generate a match object given name a params and possibly a context
  *
  * @param  {String} name
@@ -439,10 +475,29 @@ prototype.generate = function(name, params, newContext) {
         // copy the URL parts first, before changing them in rewrite()
         assign(match, urlParts);
         this.rewrite('to', urlParts, context);
-        match.url = composeURL(urlParts);
+        match.url = this.compose(urlParts);
     }
     return match;
 };
+
+/**
+ * Compose a URL from its constituent parts
+ *
+ * @param  {Object} urlParts
+ *
+ * @return {String}
+ */
+prototype.compose = function(urlParts) {
+    var url = urlParts.path;
+    var queryString = composeQueryString(urlParts.query);
+    if (queryString) {
+        url += '?' + queryString;
+    }
+    if (urlParts.hash) {
+        url += '#' + urlParts.hash;
+    }
+    return url;
+}
 
 /**
  * Load necessary module(s) for a route, append to history, set the state,
@@ -610,6 +665,7 @@ prototype.rewrite = function(direction, urlParts, context) {
  */
 prototype.load = function(match) {
     try {
+        var _this = this;
         var result;
         var routeDef = (match) ? this.routes[match.name] : null;
         if (!routeDef) {
@@ -618,7 +674,22 @@ prototype.load = function(match) {
         if (routeDef.load) {
             result = routeDef.load(match);
         }
-        return Promise.resolve(result);
+        return Promise.resolve(result).catch(function(err) {
+            if (_this.options.reloadFaultyScript) {
+                if (/Loading chunk/i.test(err.message)) {
+                    if (typeof(performance) === 'object' && typeof(performance.navigation) === 'object') {
+                        if (performance.navigation.type !== 1) {
+                            if (navigator.onLine) {
+                                // force reloading from server
+                                console.log('Reloading page...');
+                                location.reload(true);
+                            }
+                        }
+                    }
+                }
+            }
+            throw err;
+        });
     } catch (err) {
         return Promise.reject(err);
     }
@@ -739,9 +810,7 @@ prototype.setLocationURL = function(url, state, replace) {
     if (this.options.trackLocation) {
         var currentURL = this.getLocationURL(location);
         if (currentURL !== url) {
-            if (this.options.useHashFallback) {
-                url = '#' + url;
-            }
+            url = this.applyFallback(url);
             if (replace) {
                 window.history.replaceState(state, '', url);
             } else {
@@ -750,6 +819,16 @@ prototype.setLocationURL = function(url, state, replace) {
         }
     }
 };
+
+prototype.applyFallback = function(url) {
+    if (this.options.useHashFallback) {
+        if (url != undefined) {
+            url = '#' + url;
+        }
+    }
+    return url;
+};
+
 
 /**
  * Called when the user clicks on the page
@@ -760,15 +839,18 @@ prototype.handleLinkClick = function(evt) {
     if (evt.button === 0 && !evt.defaultPrevented) {
         var link = getLink(evt.target);
         if (link && !link.target && !link.download) {
-            var url = this.getLocationURL(link);
-            if (url) {
-                var match = this.match(url);
-                if (match) {
-                    var time = getTimeStamp();
-                    evt.preventDefault();
-                    evt.stopPropagation();
-                    this.apply(match, time, true, false);
+            try {
+                var url = this.getLocationURL(link);
+                if (url) {
+                    var match = this.match(url);
+                    if (match) {
+                        var time = getTimeStamp();
+                        evt.preventDefault();
+                        evt.stopPropagation();
+                        this.apply(match, time, true, false);
+                    }
                 }
+            } catch (err) {
             }
         }
     }
@@ -804,7 +886,7 @@ function getURLTemplateRegExp(template, types, isPath) {
     }
     var pattern = template.replace(variableRegExp, function(match) {
         var variable = match.substr(2, match.length - 3)
-        var variableType = types[variable];
+        var variableType = (types) ? types[variable] : String;
         var variablePattern;
         if (variableType === Number || variableType === Boolean) {
             variablePattern = '[\\d\\.]*';
@@ -852,19 +934,7 @@ function matchTemplate(urlPart, template, types, params, isPath) {
     if (urlPart === undefined || !template) {
         return false;
     }
-    if (template instanceof Array) {
-        var match = false;
-        for (var i = 0; i < template.length; i++) {
-            var t = template[i];
-            if (matchTemplate(urlPart, t, types, params, isPath)) {
-                match = true;
-                if (isPath) {
-                    break;
-                }
-            }
-        }
-        return match;
-    } else if (typeof(template) === 'object') {
+    if (typeof(template) === 'object') {
         if (template.from) {
             return template.from(urlPart, params);
         }
@@ -881,7 +951,7 @@ function matchTemplate(urlPart, template, types, params, isPath) {
         var values = {};
         for (var i = 0; i < variables.length; i++) {
             var variable = variables[i];
-            var type = types[variable];
+            var type = (types) ? types[variable] : String;
             var value = castValue(matches[i + 1], type);
             if (value !== undefined) {
                 values[variable] = value;
@@ -898,17 +968,7 @@ function matchTemplate(urlPart, template, types, params, isPath) {
 }
 
 function fillTemplate(template, types, params, always) {
-    if (template instanceof Array) {
-        var tokens = [];
-        for (var i = 0; i < template.length; i++) {
-            var t = template[i];
-            var s = fillTemplate(t, types, params, always);
-            if (s) {
-                tokens.push(s);
-            }
-        }
-        return tokens.join('');
-    } else if (typeof(template) === 'object') {
+    if (typeof(template) === 'object') {
         if (template.to) {
             return template.to(params);
         }
@@ -918,7 +978,7 @@ function fillTemplate(template, types, params, always) {
         for (var i = 0; i < variables.length; i++) {
             var variable = variables[i];
             var value = params[variable];
-            var type = types[variable];
+            var type = (types) ? types[variable] : String;
             if (value !== undefined || always) {
                 var string = stringifyValue(value, type);
                 urlPath = urlPath.replace('${' + variable + '}', string);
@@ -967,41 +1027,6 @@ function stringifyValue(value, type) {
     }
 }
 
-function getRelativePath(basePath, path) {
-    if (!basePath) {
-        return path;
-    }
-    if (path.substr(0, basePath.length) === basePath) {
-        if (path.charAt(basePath.length) === '/') {
-            return path.substr(basePath.length);
-        } else if (path === basePath) {
-            return '/';
-        }
-    }
-}
-
-function parseURL(url) {
-    if (typeof(url) !== 'string') {
-        throw new RelaksRouteManagerError(400, 'Invalid URL');
-    }
-    var path = url;
-    var hash = '';
-    var hashIndex = path.indexOf('#');
-    if (hashIndex !== -1) {
-        hash = path.substr(hashIndex + 1);
-        path = path.substr(0, hashIndex);
-    }
-    var query = {};
-    var queryIndex = path.indexOf('?');
-    var search = '';
-    if (queryIndex !== -1) {
-        search = path.substr(queryIndex);
-        query = parseQueryString(search.substr(1));
-        path = path.substr(0, queryIndex);
-    }
-    return { path: path, query: query, search: search, hash: hash };
-}
-
 function parseQueryString(queryString) {
     var values = {};
     if (queryString) {
@@ -1015,18 +1040,6 @@ function parseQueryString(queryString) {
         }
     }
     return values;
-}
-
-function composeURL(urlParts) {
-    var url = urlParts.path;
-    var queryString = composeQueryString(urlParts.query);
-    if (queryString) {
-        url += '?' + queryString;
-    }
-    if (urlParts.hash) {
-        url += '#' + urlParts.hash;
-    }
-    return url;
 }
 
 function composeQueryString(query) {
@@ -1043,7 +1056,7 @@ function composeQueryString(query) {
 }
 
 function getLink(element) {
-    while (element && element.tagName !== 'A' && !element.href) {
+    while (element && (element.tagName !== 'A' || !element.href)) {
         element = element.parentNode;
     }
     return element;

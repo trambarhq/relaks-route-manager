@@ -93,22 +93,6 @@ describe('#match()', function() {
         expect(match).to.have.property('name').that.equals('news-page');
         expect(match.params).to.have.property('storyID').that.equals(1234);
     })
-    it ('should extract two parameters from URL hash', function() {
-        var options = {
-            routes: {
-                'news-page': {
-                    path: '/news/',
-                    params: { storyID: Number, reactionID: Number },
-                    hash: [ 'S${storyID}', 'R${reactionID}' ],
-                }
-            },
-        };
-        var component = new RelaksRouteManager(options);
-        var match = component.match('/news/#S1234R333');
-        expect(match).to.have.property('name').that.equals('news-page');
-        expect(match.params).to.have.property('storyID').that.equals(1234);
-        expect(match.params).to.have.property('reactionID').that.equals(333);
-    })
     it ('should match "*" to any path', function() {
         var options = {
             routes: {
