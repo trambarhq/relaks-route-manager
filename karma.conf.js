@@ -28,9 +28,9 @@ module.exports = function(config) {
         reporters: [ 'progress' ],
 
         webpack: {
-            devtool: 'inline-source-map',
+            mode: 'development',
             module: {
-                loaders: [
+                rules: [
                     {
                         test: /\.jsx?$/,
                         loader: 'babel-loader',
