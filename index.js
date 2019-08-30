@@ -44,14 +44,14 @@ function RelaksRouteManager(options) {
         }
     }
     if (options) {
-        if (options.basePath) {
+        var base = options.basePath || '';
+        if (base.charAt(base.length - 1) === '/') {
+            base = base.substr(0, base.length - 1);
+        }
+        if (base) {
             var basePathRewrite = {
                 from: function(urlParts, context) {
                     var path = urlParts.path;
-                    var base = options.basePath;
-                    if (base.charAt(base.length - 1) === '/') {
-                        base = base.substr(0, base.length - 1);
-                    }
                     if (path.substr(0, base.length) === base) {
                         if (path.charAt(base.length) === '/') {
                             urlParts.path = path.substr(base.length);
@@ -60,10 +60,6 @@ function RelaksRouteManager(options) {
                 },
                 to: function(urlParts, context) {
                     var path = urlParts.path;
-                    var base = options.basePath;
-                    if (base.charAt(base.length - 1) === '/') {
-                        base = base.substr(0, base.length - 1);
-                    }
                     urlParts.path = base + path;
                 },
             };

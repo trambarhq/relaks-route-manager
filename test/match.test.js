@@ -14,6 +14,19 @@ describe('#match()', function() {
         var match = component.match('/profile/');
         expect(match).to.have.property('name').that.equals('profile-page');
     })
+    it ('should ignore base path of /', function() {
+        var options = {
+            basePath: '/',
+            routes: {
+                'profile-page': {
+                    path: '/profile/',
+                }
+            },
+        };
+        var component = new RelaksRouteManager(options);
+        var match = component.match('/profile/');
+        expect(match).to.have.property('name').that.equals('profile-page');
+    })
     it ('should match a URL with missing trailing slash', function() {
         var options = {
             routes: {

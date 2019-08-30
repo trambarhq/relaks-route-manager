@@ -22,6 +22,27 @@ describe('#find()', function() {
         });
         expect(url).to.equal('/search?q=cat%20dog&m=8');
     })
+    it ('should ignore base path of /', function() {
+        var options = {
+            basePath: '/',
+            routes: {
+                'search-page': {
+                    path: '/search',
+                    params: { keywords: WordList, max: Number },
+                    query: {
+                        q: '${keywords}',
+                        m: '${max}',
+                    }
+                }
+            },
+        };
+        var component = new RelaksRouteManager(options);
+        var url = component.find('search-page', {
+            keywords: [ 'cat', 'dog' ],
+            max: 8
+        });
+        expect(url).to.equal('/search?q=cat%20dog&m=8');
+    })
     it ('should generate a URL with hash', function() {
         var options = {
             routes: {
