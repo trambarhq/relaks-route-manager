@@ -1063,8 +1063,8 @@ var counter = 0;
 function getTimeStamp() {
     var s = (new Date).toISOString();
     var n = String(counter++);
-    n = '00000000'.substr(n.length) + n;
-    return s + ':' + n;
+    var c = '00000000'.substr(n.length) + n;
+    return s.substr(0, 23) + c + 'Z';
 }
 
 function assign(dst, src) {
