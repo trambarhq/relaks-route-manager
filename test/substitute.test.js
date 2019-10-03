@@ -152,6 +152,48 @@ describe('#evt.substitute()', function() {
             expect(component).to.have.property('url', '/news/');
         });
     })
+    it ('should work properly when evt.postponeDefault() is given a callback instead of a promise', function() {
+        var options = {
+            routes: {
+                'welcome-page': {
+                    path: '/welcome/',
+                    public: true,
+                },
+                'news-page': {
+                    path: '/news/',
+                    params: { storyID: Number, reactionID: Number },
+                    hash: [ 'S${storyID}', 'R${reactionID}' ],
+                },
+                'story-page': {
+                    path: '/story/${id}',
+                    params: { id: Number },
+                },
+                'login-page': {
+                    public: true,
+                },
+            },
+        };
+        var component = new RelaksRouteManager(options);
+        var authorizationPromise = ManualPromise();
+        var callbackInvoked = false;
+        component.addEventListener('beforechange', (evt) => {
+            if (!evt.route.public) {
+                evt.postponeDefault(() => {
+                    callbackInvoked = true;
+                    return authorizationPromise;
+                });
+                evt.substitute('login-page');
+            }
+        })
+        return component.replace('welcome-page').then(() => {
+            component.push('news-page');
+            return TimeoutPromise(10);
+        }).then(() => {
+            expect(component).to.have.property('name', 'login-page');
+            expect(component).to.have.property('url', '/news/');
+            expect(callbackInvoked).to.be.true;
+        });
+    })
     it ('should replace substitute with the intended page when the promise given to postponeDefault() fulfills', function() {
         var options = {
             routes: {

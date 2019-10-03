@@ -36,7 +36,7 @@ module.exports = function(config) {
                         loader: 'babel-loader',
                         exclude: Path.resolve('./node_modules'),
                         query: {
-                            presets: [ 'env' ]
+                            presets: [ '@babel/env' ]
                         }
                     }
                 ]

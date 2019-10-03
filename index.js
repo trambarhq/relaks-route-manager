@@ -275,10 +275,11 @@ prototype.replace = function(name, params, newContext) {
  *
  * @param  {String} name
  * @param  {Object} params
+ * @param  {Boolean} keepURL
  *
  * @return {Promise<Boolean>}
  */
-prototype.substitute = function(name, params) {
+prototype.substitute = function(name, params, keepURL) {
     if (process.env.NODE_ENV !== 'production') {
         if (this.insideBeforeChangeHandler) {
             console.warn('Calling substitute() inside a beforechange handler. Perhaps you mean to call evt.substitute()?')
@@ -288,7 +289,7 @@ prototype.substitute = function(name, params) {
     var match = this.generate(name, params);
     var entry = this.history[this.history.length - 1];
     var time = (entry) ? entry.time : getTimeStamp();
-    if (match.url === undefined && entry) {
+    if ((match.url === undefined || keepURL) && entry) {
         // use URL of route being substituted
         match.url = entry.url;
         match.path = entry.path;
@@ -510,9 +511,9 @@ prototype.apply = function(match, time, sync, replace) {
     var _this = this;
     var confirmationEvent = new RelaksRouteManagerEvent('beforechange', this, match);
     var subEntry;
-    confirmationEvent.substitute = function(name, params) {
+    confirmationEvent.substitute = function(name, params, keepURL) {
         var sub = _this.generate(name, params, match.context);
-        if (sub.url === undefined) {
+        if (sub.url === undefined || keepURL) {
             // use URL of the intended route
             sub.url = match.url;
             sub.path = match.path;
