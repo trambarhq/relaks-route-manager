@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2.0.0
+
+* Upgraded to ES6
+
 ## 0.0.24
 
 * Added third parameter to substitute(), allowing original URL to be kept even where the substituting route has its own URL

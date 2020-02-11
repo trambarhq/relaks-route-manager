@@ -1,4 +1,5 @@
-function RelaksRouteManagerProxy(routeManager) {
+class RelaksRouteManagerProxy {
+  constructor(routeManager) {
     this.routeManager = routeManager;
     this.name = routeManager.name;
     this.params = routeManager.params;
@@ -10,32 +11,33 @@ function RelaksRouteManagerProxy(routeManager) {
     this.query = routeManager.query;
     this.search = routeManager.search;
     this.hash = routeManager.hash;
+  }
+
+  push(name, params) {
+    return this.routeManager.push(name, params);
+  }
+
+  replace(name, params) {
+    return this.routeManager.replace(name, params);
+  }
+
+  substitute(name, params) {
+    return this.routeManager.substitute(name, params);
+  }
+
+  restore() {
+    return this.routeManager.restore();
+  }
+
+  change(url, options) {
+    return this.routeManager.change(url, options);
+  }
+
+  find(name, params) {
+    return this.routeManager.find(name, params);
+  }
 }
 
-var prototype = RelaksRouteManagerProxy.prototype;
-
-prototype.push = function(name, params) {
-    return this.routeManager.push(name, params);
+export {
+  RelaksRouteManagerProxy,
 };
-
-prototype.replace = function(name, params) {
-    return this.routeManager.replace(name, params);
-};
-
-prototype.substitute = function(name, params) {
-    return this.routeManager.substitute(name, params);
-};
-
-prototype.restore = function() {
-    return this.routeManager.restore();
-};
-
-prototype.change = function(url, options) {
-    return this.routeManager.change(url, options);
-};
-
-prototype.find = function(name, params) {
-    return this.routeManager.find(name, params);
-};
-
-module.exports = RelaksRouteManagerProxy;
