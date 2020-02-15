@@ -304,13 +304,14 @@
        * Return a promise that will be fulfilled when the specified event occurs
        *
        * @param  {String} type
+       * @param  {Number|undefined} timeout
        *
        * @return {Promise<Event>}
        */
 
     }, {
       key: "waitForEvent",
-      value: function waitForEvent(type) {
+      value: function waitForEvent(type, timeout) {
         var promise = this.promises[type];
 
         if (!promise) {
@@ -322,6 +323,14 @@
           promise.resolve = resolve;
           promise.reject = reject;
           this.promises[type] = promise;
+
+          if (timeout) {
+            setTimeout(function () {
+              if (promise.reject) {
+                promise.reject(new Error("No '".concat(type, "' event within ").concat(timeout, "ms")));
+              }
+            }, timeout);
+          }
         }
 
         return promise;
@@ -350,6 +359,7 @@
 
         if (listeners.length === 0) {
           if (promise) {
+            promise.reject = null;
             promise.resolve(evt);
             return true;
           } else {
@@ -359,6 +369,7 @@
 
         evt.decisionPromise = this.dispatchEvent(evt, listeners).then(function () {
           if (promise) {
+            promise.reject = null;
             promise.resolve(evt);
           }
         });
