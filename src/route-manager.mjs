@@ -1,6 +1,6 @@
 import { EventEmitter } from 'relaks-event-emitter';
-import { RelaksRouteManagerEvent } from './route-manager-event.mjs';
-import { RelaksRouteManagerError } from './route-manager-error.mjs';
+import { RouteManagerEvent } from './route-manager-event.mjs';
+import { RouteManagerError } from './route-manager-error.mjs';
 
 const SSR = (typeof window !== 'object');
 
@@ -340,7 +340,7 @@ class RelaksRouteManager extends EventEmitter {
    */
   back() {
     if (this.history.length <= 1) {
-      const err = new RelaksRouteManagerError(400, 'Going beyond starting page');
+      const err = new RouteManagerError(400, 'Going beyond starting page');
       return Promise.reject(err);
     }
     if (this.options.trackLocation) {
@@ -355,7 +355,7 @@ class RelaksRouteManager extends EventEmitter {
           if (reject) {
             this.backResolve = undefined;
             this.backReject = undefined;
-            reject(new RelaksRouteManagerError(400, 'Unable to go back'));
+            reject(new RouteManagerError(400, 'Unable to go back'));
           }
         }, 50);
       });
@@ -374,7 +374,7 @@ class RelaksRouteManager extends EventEmitter {
    */
   match(url) {
     if (typeof(url) !== 'string') {
-      throw new RelaksRouteManagerError(400, 'Invalid URL');
+      throw new RouteManagerError(400, 'Invalid URL');
     }
     // perform rewrites
     const urlParts = this.parse(url);
@@ -421,7 +421,7 @@ class RelaksRouteManager extends EventEmitter {
    */
   parse(url) {
     if (typeof(url) !== 'string') {
-      throw new RelaksRouteManagerError(400, 'Invalid URL');
+      throw new RouteManagerError(400, 'Invalid URL');
     }
     let path = url;
     let hash = '';
@@ -499,7 +499,7 @@ class RelaksRouteManager extends EventEmitter {
    * @return {Promise<Boolean>}
    */
   apply(match, time, sync, replace) {
-    const confirmationEvent = new RelaksRouteManagerEvent('beforechange', this, match);
+    const confirmationEvent = new RouteManagerEvent('beforechange', this, match);
     let subEntry;
     confirmationEvent.substitute = (name, params, keepURL) => {
       const sub = this.generate(name, params, match.context);
@@ -576,7 +576,7 @@ class RelaksRouteManager extends EventEmitter {
    */
   finalize(entry) {
     Object.assign(this, entry);
-    this.triggerEvent(new RelaksRouteManagerEvent('change', this));
+    this.triggerEvent(new RouteManagerEvent('change', this));
   }
 
 
@@ -591,7 +591,7 @@ class RelaksRouteManager extends EventEmitter {
   fill(name, params) {
     const route = this.routes[name];
     if (!route) {
-      throw new RelaksRouteManagerError(500, 'No route by that name: ' + name);
+      throw new RouteManagerError(500, 'No route by that name: ' + name);
     }
     if (route.path === '*') {
       return null;
@@ -657,7 +657,7 @@ class RelaksRouteManager extends EventEmitter {
       let result;
       const route = (match) ? this.routes[match.name] : null;
       if (!route) {
-        throw new RelaksRouteManagerError(404, 'No route');
+        throw new RouteManagerError(404, 'No route');
       }
       if (route.load) {
         result = route.load(match);
@@ -713,16 +713,16 @@ class RelaksRouteManager extends EventEmitter {
     const docLocation = window.location;
     if (location !== docLocation) {
       if (location.host !== docLocation.host) {
-        throw new RelaksRouteManagerError(400, 'Host does not match');
+        throw new RouteManagerError(400, 'Host does not match');
       } else if (location.protocol !== docLocation.protocol) {
-        throw new RelaksRouteManagerError(400, 'Protocol does not match');
+        throw new RouteManagerError(400, 'Protocol does not match');
       }
       if (this.options.useHashFallback) {
         if (location.pathname !== docLocation.pathname) {
-          throw new RelaksRouteManagerError(400, 'Path does not match');
+          throw new RouteManagerError(400, 'Path does not match');
         }
         if (location.search !== docLocation.search) {
-          throw new RelaksRouteManagerError(400, 'Query string does not match');
+          throw new RouteManagerError(400, 'Query string does not match');
         }
       }
     }
@@ -1058,4 +1058,5 @@ function getTimeStamp() {
 
 export {
   RelaksRouteManager,
+  RelaksRouteManager as RouteManager,
 };

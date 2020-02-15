@@ -7,4 +7,5 @@ class RelaksRouteManagerError extends Error {
 
 export {
   RelaksRouteManagerError,
+  RelaksRouteManagerError as RouteManagerError,
 };

@@ -40,4 +40,5 @@ class RelaksRouteManagerProxy {
 
 export {
   RelaksRouteManagerProxy,
+  RelaksRouteManagerProxy as RouteManagerProxy,
 };

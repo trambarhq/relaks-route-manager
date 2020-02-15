@@ -1722,6 +1722,10 @@
   exports.RelaksRouteManagerError = RelaksRouteManagerError;
   exports.RelaksRouteManagerEvent = RelaksRouteManagerEvent;
   exports.RelaksRouteManagerProxy = RelaksRouteManagerProxy;
+  exports.RouteManager = RelaksRouteManager;
+  exports.RouteManagerError = RelaksRouteManagerError;
+  exports.RouteManagerEvent = RelaksRouteManagerEvent;
+  exports.RouteManagerProxy = RelaksRouteManagerProxy;
   exports.default = RelaksRouteManager;
 
   Object.defineProperty(exports, '__esModule', { value: true });

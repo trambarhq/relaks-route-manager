@@ -5,4 +5,5 @@ class RelaksRouteManagerEvent extends GenericEvent {
 
 export {
   RelaksRouteManagerEvent,
+  RelaksRouteManagerEvent as RouteManagerEvent,
 };

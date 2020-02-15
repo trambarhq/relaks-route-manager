@@ -1,12 +1,7 @@
-import { RelaksRouteManager } from './route-manager.mjs';
-import { RelaksRouteManagerEvent } from './route-manager-event.mjs';
-import { RelaksRouteManagerError } from './route-manager-error.mjs';
-import { RelaksRouteManagerProxy } from './route-manager-proxy.mjs';
+export * from './route-manager.mjs';
+export * from './route-manager-event.mjs';
+export * from './route-manager-error.mjs';
+export * from './route-manager-proxy.mjs';
 
-export {
-  RelaksRouteManager as default,
-  RelaksRouteManager,
-  RelaksRouteManagerEvent,
-  RelaksRouteManagerError,
-  RelaksRouteManagerProxy,
-};
+import { RouteManager } from './route-manager.mjs';
+export default RouteManager;

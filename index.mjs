@@ -1715,4 +1715,4 @@ function () {
 }();
 
 export default RelaksRouteManager;
-export { RelaksRouteManager, RelaksRouteManagerError, RelaksRouteManagerEvent, RelaksRouteManagerProxy };
+export { RelaksRouteManager, RelaksRouteManagerError, RelaksRouteManagerEvent, RelaksRouteManagerProxy, RelaksRouteManager as RouteManager, RelaksRouteManagerError as RouteManagerError, RelaksRouteManagerEvent as RouteManagerEvent, RelaksRouteManagerProxy as RouteManagerProxy };
