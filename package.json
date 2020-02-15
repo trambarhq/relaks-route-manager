@@ -6,6 +6,7 @@
   "main": "./index",
   "module": "./index.mjs",
   "preferGlobal": false,
+  "sideEffects": false,
   "repository": "git://github.com/trambarhq/relaks-route-manager.git",
   "homepage": "https://github.com/trambarhq/relaks-route-manager",
   "bugs": {
