@@ -1,8 +1,8 @@
 (function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('relaks-event-emitter')) :
-  typeof define === 'function' && define.amd ? define(['exports', 'relaks-event-emitter'], factory) :
-  (global = global || self, factory(global.RelaksRouteManager = {}, global.RelaksEventEmitter));
-}(this, (function (exports, relaksEventEmitter) { 'use strict';
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
+  typeof define === 'function' && define.amd ? define(['exports'], factory) :
+  (global = global || self, factory(global.RelaksRouteManager = {}));
+}(this, (function (exports) { 'use strict';
 
   function _typeof(obj) {
     "@babel/helpers - typeof";
@@ -199,6 +199,264 @@
     throw new TypeError("Invalid attempt to destructure non-iterable instance");
   }
 
+  function _typeof$1(obj) {
+    "@babel/helpers - typeof";
+
+    if (typeof Symbol === "function" && typeof Symbol.iterator === "symbol") {
+      _typeof$1 = function _typeof(obj) {
+        return typeof obj;
+      };
+    } else {
+      _typeof$1 = function _typeof(obj) {
+        return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
+      };
+    }
+
+    return _typeof$1(obj);
+  }
+
+  function _classCallCheck$1(instance, Constructor) {
+    if (!(instance instanceof Constructor)) {
+      throw new TypeError("Cannot call a class as a function");
+    }
+  }
+
+  function _defineProperties$1(target, props) {
+    for (var i = 0; i < props.length; i++) {
+      var descriptor = props[i];
+      descriptor.enumerable = descriptor.enumerable || false;
+      descriptor.configurable = true;
+      if ("value" in descriptor) descriptor.writable = true;
+      Object.defineProperty(target, descriptor.key, descriptor);
+    }
+  }
+
+  function _createClass$1(Constructor, protoProps, staticProps) {
+    if (protoProps) _defineProperties$1(Constructor.prototype, protoProps);
+    if (staticProps) _defineProperties$1(Constructor, staticProps);
+    return Constructor;
+  }
+
+  var RelaksEventEmitter =
+  /*#__PURE__*/
+  function () {
+    function RelaksEventEmitter() {
+      _classCallCheck$1(this, RelaksEventEmitter);
+
+      this.listeners = [];
+      this.promises = [];
+    }
+    /**
+     * Attach an event handler
+     *
+     * @param  {String} type
+     * @param  {Function} handler
+     * @param  {Boolean|undefined} beginning
+     */
+
+
+    _createClass$1(RelaksEventEmitter, [{
+      key: "addEventListener",
+      value: function addEventListener(type, handler, beginning) {
+        if (typeof type !== 'string') {
+          if (process.env.NODE_ENV !== 'production') {
+            console.warn('Invalid event type passed to addEventListener()');
+          }
+
+          return;
+        }
+
+        if (!(handler instanceof Function) && handler != null) {
+          if (process.env.NODE_ENV !== 'production') {
+            console.warn('Non-function passed to addEventListener()');
+          }
+
+          return;
+        }
+
+        if (beginning) {
+          this.listeners.unshift({
+            type: type,
+            handler: handler
+          });
+        } else {
+          this.listeners.push({
+            type: type,
+            handler: handler
+          });
+        }
+      }
+      /**
+       * Remove an event handler
+       *
+       * @param  {String} type
+       * @param  {Function} handler
+       */
+
+    }, {
+      key: "removeEventListener",
+      value: function removeEventListener(type, handler) {
+        this.listeners = this.listeners.filter(function (listener) {
+          return !(listener.type === type && listener.handler === handler);
+        });
+      }
+      /**
+       * Return a promise that will be fulfilled when the specified event occurs
+       *
+       * @param  {String} type
+       *
+       * @return {Promise<Event>}
+       */
+
+    }, {
+      key: "waitForEvent",
+      value: function waitForEvent(type) {
+        var promise = this.promises[type];
+
+        if (!promise) {
+          var resolve, reject;
+          promise = new Promise(function (f1, f2) {
+            resolve = f1;
+            reject = f2;
+          });
+          promise.resolve = resolve;
+          promise.reject = reject;
+          this.promises[type] = promise;
+        }
+
+        return promise;
+      }
+      /**
+       * Send event to event listeners, return true or false depending on whether
+       * there were any listeners
+       *
+       * @param  {RelaksDjangoDataSourceEvent} evt
+       *
+       * @return {Boolean}
+       */
+
+    }, {
+      key: "triggerEvent",
+      value: function triggerEvent(evt) {
+        var promise = this.promises[evt.type];
+
+        if (promise) {
+          delete this.promises[evt.type];
+        }
+
+        var listeners = this.listeners.filter(function (listener) {
+          return listener.type === evt.type;
+        });
+
+        if (listeners.length === 0) {
+          if (promise) {
+            promise.resolve(evt);
+            return true;
+          } else {
+            return false;
+          }
+        }
+
+        evt.decisionPromise = this.dispatchEvent(evt, listeners).then(function () {
+          if (promise) {
+            promise.resolve(evt);
+          }
+        });
+        return true;
+      }
+    }, {
+      key: "dispatchEvent",
+      value: function dispatchEvent(evt, listeners) {
+        var _this = this;
+
+        for (var i = 0; i < listeners.length; i++) {
+          var listener = listeners[i];
+          listener.handler.call(evt.target, evt);
+
+          if (evt.defaultPostponed) {
+            var _ret = function () {
+              var remainingListeners = listeners.slice(i + 1);
+              return {
+                v: evt.defaultPostponed.then(function (decision) {
+                  if (decision === false) {
+                    evt.preventDefault();
+                    evt.stopImmediatePropagation();
+                  }
+
+                  if (!evt.propagationStopped) {
+                    return _this.dispatchEvent(evt, remainingListeners);
+                  }
+                })
+              };
+            }();
+
+            if (_typeof$1(_ret) === "object") return _ret.v;
+          }
+
+          if (evt.propagationStopped) {
+            break;
+          }
+        }
+
+        return Promise.resolve();
+      }
+    }]);
+
+    return RelaksEventEmitter;
+  }();
+
+  var RelaksGenericEvent =
+  /*#__PURE__*/
+  function () {
+    function RelaksGenericEvent(type, target, props) {
+      _classCallCheck$1(this, RelaksGenericEvent);
+
+      this.type = type;
+      this.target = target;
+      this.defaultPrevented = false;
+      this.defaultPostponed = null;
+      this.propagationStopped = false;
+      this.decisionPromise = null;
+      Object.assign(this, props);
+    }
+
+    _createClass$1(RelaksGenericEvent, [{
+      key: "preventDefault",
+      value: function preventDefault() {
+        this.defaultPrevented = true;
+      }
+    }, {
+      key: "postponeDefault",
+      value: function postponeDefault(promise) {
+        if (promise instanceof Function) {
+          promise = promise();
+        }
+
+        if (!promise || !(promise.then instanceof Function)) {
+          if (process.env.NODE_ENV !== 'production') {
+            console.warn('Non-promise passed to postponeDefault()');
+          }
+
+          return;
+        }
+
+        this.defaultPostponed = promise;
+      }
+    }, {
+      key: "stopImmediatePropagation",
+      value: function stopImmediatePropagation() {
+        this.propagationStopped = true;
+      }
+    }, {
+      key: "waitForDecision",
+      value: function waitForDecision() {
+        return Promise.resolve(this.decisionPromise);
+      }
+    }]);
+
+    return RelaksGenericEvent;
+  }();
+
   var RelaksRouteManagerEvent =
   /*#__PURE__*/
   function (_GenericEvent) {
@@ -211,7 +469,7 @@
     }
 
     return RelaksRouteManagerEvent;
-  }(relaksEventEmitter.GenericEvent);
+  }(RelaksGenericEvent);
 
   var RelaksRouteManagerError =
   /*#__PURE__*/
@@ -1364,7 +1622,7 @@
     }]);
 
     return RelaksRouteManager;
-  }(relaksEventEmitter.EventEmitter);
+  }(RelaksEventEmitter);
 
   var variableRegExp = /\$\{\w+\}/g;
   var regExpCache = {};

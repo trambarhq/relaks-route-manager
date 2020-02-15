@@ -1,4 +1,5 @@
 const Babel = require('rollup-plugin-babel');
+const Resolve = require('@rollup/plugin-node-resolve');
 
 module.exports = [
   'index',
@@ -10,9 +11,6 @@ module.exports = [
       format: 'umd',
       name: 'RelaksRouteManager',
       exports: 'named',
-      globals: {
-        'relaks-event-emitter': 'RelaksEventEmitter',
-      }
     },
     plugins: [
       Babel({
@@ -20,6 +18,7 @@ module.exports = [
           '@babel/env',
         ],
       }),
+      Resolve(),
     ]
   };
 });
