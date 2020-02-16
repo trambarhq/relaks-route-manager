@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2.0.6
+
+* Fixed regression
+
 ## 2.0.0
 
 * Upgraded to ES6

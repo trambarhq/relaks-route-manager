@@ -1906,12 +1906,14 @@
   function composeQueryString(query) {
     var pairs = [];
 
-    for (var _i6 = 0, _Object$entries5 = Object.entries(query); _i6 < _Object$entries5.length; _i6++) {
-      var _Object$entries5$_i = _slicedToArray(_Object$entries5[_i6], 2),
-          name = _Object$entries5$_i[0],
-          value = _Object$entries5$_i[1];
+    if (query) {
+      for (var _i6 = 0, _Object$entries5 = Object.entries(query); _i6 < _Object$entries5.length; _i6++) {
+        var _Object$entries5$_i = _slicedToArray(_Object$entries5[_i6], 2),
+            name = _Object$entries5$_i[0],
+            value = _Object$entries5$_i[1];
 
-      pairs.push(encodeURIComponent(name) + '=' + encodeURIComponent(value));
+        pairs.push(encodeURIComponent(name) + '=' + encodeURIComponent(value));
+      }
     }
 
     return pairs.join('&');

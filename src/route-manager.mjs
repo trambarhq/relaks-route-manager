@@ -1034,8 +1034,10 @@ function parseQueryString(queryString) {
 
 function composeQueryString(query) {
   const pairs = [];
-  for (let [ name, value ] of Object.entries(query)) {
-    pairs.push(encodeURIComponent(name) + '=' + encodeURIComponent(value));
+  if (query) {
+    for (let [ name, value ] of Object.entries(query)) {
+      pairs.push(encodeURIComponent(name) + '=' + encodeURIComponent(value));
+    }
   }
   return pairs.join('&');
 }
