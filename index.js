@@ -237,9 +237,7 @@
     return Constructor;
   }
 
-  var RelaksEventEmitter =
-  /*#__PURE__*/
-  function () {
+  var RelaksEventEmitter = /*#__PURE__*/function () {
     function RelaksEventEmitter() {
       _classCallCheck$1(this, RelaksEventEmitter);
 
@@ -336,6 +334,20 @@
         return promise;
       }
       /**
+       * Return a promise that will be fulfilled when a 'change' event occurs
+       *
+       * @param  {String} type
+       * @param  {Number|undefined} timeout
+       *
+       * @return {Promise<Event>}
+       */
+
+    }, {
+      key: "change",
+      value: function change(timeout) {
+        return this.waitForEvent('change');
+      }
+      /**
        * Send event to event listeners, return true or false depending on whether
        * there were any listeners
        *
@@ -416,9 +428,7 @@
     return RelaksEventEmitter;
   }();
 
-  var RelaksGenericEvent =
-  /*#__PURE__*/
-  function () {
+  var RelaksGenericEvent = /*#__PURE__*/function () {
     function RelaksGenericEvent(type, target, props) {
       _classCallCheck$1(this, RelaksGenericEvent);
 
@@ -468,9 +478,7 @@
     return RelaksGenericEvent;
   }();
 
-  var RelaksRouteManagerEvent =
-  /*#__PURE__*/
-  function (_GenericEvent) {
+  var RelaksRouteManagerEvent = /*#__PURE__*/function (_GenericEvent) {
     _inherits(RelaksRouteManagerEvent, _GenericEvent);
 
     function RelaksRouteManagerEvent() {
@@ -482,9 +490,7 @@
     return RelaksRouteManagerEvent;
   }(RelaksGenericEvent);
 
-  var RelaksRouteManagerError =
-  /*#__PURE__*/
-  function (_Error) {
+  var RelaksRouteManagerError = /*#__PURE__*/function (_Error) {
     _inherits(RelaksRouteManagerError, _Error);
 
     function RelaksRouteManagerError(status, message) {
@@ -498,7 +504,7 @@
     }
 
     return RelaksRouteManagerError;
-  }(_wrapNativeSuper(Error));
+  }( /*#__PURE__*/_wrapNativeSuper(Error));
 
   var SSR = (typeof window === "undefined" ? "undefined" : _typeof(window)) !== 'object';
   var defaultOptions = {
@@ -510,9 +516,7 @@
     basePath: ''
   };
 
-  var RelaksRouteManager =
-  /*#__PURE__*/
-  function (_EventEmitter) {
+  var RelaksRouteManager = /*#__PURE__*/function (_EventEmitter) {
     _inherits(RelaksRouteManager, _EventEmitter);
 
     function RelaksRouteManager(options) {
@@ -1936,9 +1940,7 @@
     return s.substr(0, 23) + c + 'Z';
   }
 
-  var RelaksRouteManagerProxy =
-  /*#__PURE__*/
-  function () {
+  var RelaksRouteManagerProxy = /*#__PURE__*/function () {
     function RelaksRouteManagerProxy(routeManager) {
       _classCallCheck(this, RelaksRouteManagerProxy);
 

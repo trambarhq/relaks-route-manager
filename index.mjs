@@ -195,9 +195,7 @@ function _nonIterableRest() {
   throw new TypeError("Invalid attempt to destructure non-iterable instance");
 }
 
-var RelaksRouteManagerEvent =
-/*#__PURE__*/
-function (_GenericEvent) {
+var RelaksRouteManagerEvent = /*#__PURE__*/function (_GenericEvent) {
   _inherits(RelaksRouteManagerEvent, _GenericEvent);
 
   function RelaksRouteManagerEvent() {
@@ -209,9 +207,7 @@ function (_GenericEvent) {
   return RelaksRouteManagerEvent;
 }(GenericEvent);
 
-var RelaksRouteManagerError =
-/*#__PURE__*/
-function (_Error) {
+var RelaksRouteManagerError = /*#__PURE__*/function (_Error) {
   _inherits(RelaksRouteManagerError, _Error);
 
   function RelaksRouteManagerError(status, message) {
@@ -225,7 +221,7 @@ function (_Error) {
   }
 
   return RelaksRouteManagerError;
-}(_wrapNativeSuper(Error));
+}( /*#__PURE__*/_wrapNativeSuper(Error));
 
 var SSR = (typeof window === "undefined" ? "undefined" : _typeof(window)) !== 'object';
 var defaultOptions = {
@@ -237,9 +233,7 @@ var defaultOptions = {
   basePath: ''
 };
 
-var RelaksRouteManager =
-/*#__PURE__*/
-function (_EventEmitter) {
+var RelaksRouteManager = /*#__PURE__*/function (_EventEmitter) {
   _inherits(RelaksRouteManager, _EventEmitter);
 
   function RelaksRouteManager(options) {
@@ -1663,9 +1657,7 @@ function getTimeStamp() {
   return s.substr(0, 23) + c + 'Z';
 }
 
-var RelaksRouteManagerProxy =
-/*#__PURE__*/
-function () {
+var RelaksRouteManagerProxy = /*#__PURE__*/function () {
   function RelaksRouteManagerProxy(routeManager) {
     _classCallCheck(this, RelaksRouteManagerProxy);
 

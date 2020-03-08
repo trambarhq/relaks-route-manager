@@ -15,6 +15,7 @@ module.exports = [
           '@babel/env',
         ],
       }),
-    ]
+    ],
+    external: [ 'relaks-event-emitter' ]
   };
 });
