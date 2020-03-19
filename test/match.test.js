@@ -1,21 +1,22 @@
 import { expect } from 'chai';
+
 import RelaksRouteManager from '../index.mjs';
 
 describe('#match()', function() {
   it ('should find a matching route', function() {
-    var options = {
+    const options = {
       routes: {
         'profile-page': {
           path: '/profile/',
         }
       },
     };
-    var component = new RelaksRouteManager(options);
-    var match = component.match('/profile/');
+    const manager = new RelaksRouteManager(options);
+    const match = manager.match('/profile/');
     expect(match).to.have.property('name').that.equals('profile-page');
   })
   it ('should ignore base path of /', function() {
-    var options = {
+    const options = {
       basePath: '/',
       routes: {
         'profile-page': {
@@ -23,24 +24,24 @@ describe('#match()', function() {
         }
       },
     };
-    var component = new RelaksRouteManager(options);
-    var match = component.match('/profile/');
+    const manager = new RelaksRouteManager(options);
+    const match = manager.match('/profile/');
     expect(match).to.have.property('name').that.equals('profile-page');
   })
   it ('should match a URL with missing trailing slash', function() {
-    var options = {
+    const options = {
       routes: {
         'profile-page': {
           path: '/profile/',
         }
       },
     };
-    var component = new RelaksRouteManager(options);
-    var match = component.match('/profile');
+    const manager = new RelaksRouteManager(options);
+    const match = manager.match('/profile');
     expect(match).to.have.property('name').that.equals('profile-page');
   })
   it ('should correct cast a parameter to number', function() {
-    var options = {
+    const options = {
       routes: {
         'story-page': {
           path: '/story/${id}',
@@ -48,13 +49,13 @@ describe('#match()', function() {
         }
       },
     };
-    var component = new RelaksRouteManager(options);
-    var match = component.match('/story/123');
+    const manager = new RelaksRouteManager(options);
+    const match = manager.match('/story/123');
     expect(match).to.have.property('name').that.equals('story-page');
     expect(match.params).to.have.property('id').to.be.a('number').that.equals(123);
   })
   it ('should call function to convert parameter', function() {
-    var options = {
+    const options = {
       routes: {
         'search-page': {
           path: '/search',
@@ -66,14 +67,14 @@ describe('#match()', function() {
         }
       },
     };
-    var component = new RelaksRouteManager(options);
-    var match = component.match('/search?q=hello+world&m=5');
+    const manager = new RelaksRouteManager(options);
+    const match = manager.match('/search?q=hello+world&m=5');
     expect(match).to.have.property('name').that.equals('search-page');
     expect(match.params).to.have.property('keywords').to.deep.equal(['hello', 'world']);
     expect(match.params).to.have.property('max').to.equal(5);
   })
-  it ('should skip missing query variable', function() {
-    var options = {
+  it ('should skip missing query constiable', function() {
+    const options = {
       routes: {
         'search-page': {
           path: '/search',
@@ -85,14 +86,14 @@ describe('#match()', function() {
         }
       },
     };
-    var component = new RelaksRouteManager(options);
-    var match = component.match('/search?q=hello+world');
+    const manager = new RelaksRouteManager(options);
+    const match = manager.match('/search?q=hello+world');
     expect(match).to.have.property('name').that.equals('search-page');
     expect(match.params).to.have.property('keywords').to.deep.equal(['hello', 'world']);
     expect(match.params).to.not.have.property('max');
   })
   it ('should find parameter in URL hash', function() {
-    var options = {
+    const options = {
       routes: {
         'news-page': {
           path: '/news/',
@@ -101,13 +102,13 @@ describe('#match()', function() {
         }
       },
     };
-    var component = new RelaksRouteManager(options);
-    var match = component.match('/news/#S1234');
+    const manager = new RelaksRouteManager(options);
+    const match = manager.match('/news/#S1234');
     expect(match).to.have.property('name').that.equals('news-page');
     expect(match.params).to.have.property('storyID').that.equals(1234);
   })
   it ('should match "*" to any path', function() {
-    var options = {
+    const options = {
       routes: {
         'profile-page': {
           path: '/profile/',
@@ -117,12 +118,12 @@ describe('#match()', function() {
         },
       },
     };
-    var component = new RelaksRouteManager(options);
-    var match = component.match('/nowhere/');
+    const manager = new RelaksRouteManager(options);
+    const match = manager.match('/nowhere/');
     expect(match).to.have.property('name').that.equals('error-page');
   })
   it ('should capture empty string', function() {
-    var options = {
+    const options = {
       routes: {
         'search-page': {
           path: '/search/',
@@ -133,12 +134,12 @@ describe('#match()', function() {
         },
       }
     };
-    var component = new RelaksRouteManager(options);
-    var match = component.match('/search/?q=');
+    const manager = new RelaksRouteManager(options);
+    const match = manager.match('/search/?q=');
     expect(match.params).to.have.property('search');
   })
   it ('should capture empty string as NaN when param is number', function() {
-    var options = {
+    const options = {
       routes: {
         'search-page': {
           path: '/search/',
@@ -149,17 +150,17 @@ describe('#match()', function() {
         },
       }
     };
-    var component = new RelaksRouteManager(options);
-    var match = component.match('/search/?m=');
+    const manager = new RelaksRouteManager(options);
+    const match = manager.match('/search/?m=');
     expect(match.params).to.have.property('max').that.is.NaN;
   })
   it ('should match a route with custom path matching', function() {
-    var options = {
+    const options = {
       routes: {
         'special-page': {
           path: {
             from: (path, params) => {
-              var m = /\/special\/(.*)/.exec(path);
+              const m = /\/special\/(.*)/.exec(path);
               if (m) {
                 params.path = m[1];
                 return true;
@@ -169,14 +170,14 @@ describe('#match()', function() {
         },
       }
     };
-    var component = new RelaksRouteManager(options);
-    var match = component.match('/special/something/nice/');
+    const manager = new RelaksRouteManager(options);
+    const match = manager.match('/special/something/nice/');
     expect(match.name).to.equal('special-page');
     expect(match.params).to.have.property('path', 'something/nice/');
   })
 })
 
-var WordList = {
+const WordList = {
   from: function(value) {
     return value.split(/\s+/g);
   },

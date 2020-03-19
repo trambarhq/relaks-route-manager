@@ -1,9 +1,10 @@
 import { expect } from 'chai';
+
 import RelaksRouteManager from '../index.mjs';
 
 describe('#restore()', function() {
-  it ('should restore a route that was substituted', function() {
-    var options = {
+  it ('should restore a route that was substituted', async function() {
+    const options = {
       routes: {
         'news-page': {
           path: '/news/',
@@ -19,18 +20,15 @@ describe('#restore()', function() {
         },
       },
     };
-    var component = new RelaksRouteManager(options);
-    return component.change('/story/5').then(() => {
-      expect(component).to.have.property('url', '/story/5');
-      expect(component).to.have.property('name', 'story-page');
-      return component.substitute('error-page');
-    }).then(() => {
-      expect(component).to.have.property('url', '/error/');
-      expect(component).to.have.property('name', 'error-page');
-      return component.restore();
-    }).then(() => {
-      expect(component).to.have.property('url', '/story/5');
-      expect(component).to.have.property('name', 'story-page');
-    });
+    const manager = new RelaksRouteManager(options);
+    await manager.change('/story/5');
+    expect(manager).to.have.property('url', '/story/5');
+    expect(manager).to.have.property('name', 'story-page');
+    await manager.substitute('error-page');
+    expect(manager).to.have.property('url', '/error/');
+    expect(manager).to.have.property('name', 'error-page');
+    await manager.restore();
+    expect(manager).to.have.property('url', '/story/5');
+    expect(manager).to.have.property('name', 'story-page');
   })
 })

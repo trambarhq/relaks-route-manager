@@ -1,12 +1,11 @@
-import Chai, { expect } from 'chai';
-import ChaiAsPromised from 'chai-as-promised';
+import { expect } from 'chai';
+import { delay } from './lib/utils.js';
+
 import { RelaksRouteManager, RelaksRouteManagerProxy } from '../index.mjs';
 
-Chai.use(ChaiAsPromised);
-
 describe('RelaksRouteManagerProxy', function() {
-  it ('should copy properties from the route manager', function() {
-    var options = {
+  it ('should copy properties from the route manager', async function() {
+    const options = {
       useHashFallback: true,
       routes: {
         'news-page': {
@@ -25,21 +24,20 @@ describe('RelaksRouteManagerProxy', function() {
       },
       basePath: '/forum'
     };
-    var url = '/forum/story/7?lang=en#P4';
+    const url = '/forum/story/7?lang=en#P4';
     location.hash = '#' + url;
-    var component = new RelaksRouteManager(options);
-    var proxy;
-    component.addEventListener('change', (evt) => {
-      proxy = new RelaksRouteManagerProxy(component);
+    const manager = new RelaksRouteManager(options);
+    let proxy;
+    manager.addEventListener('change', (evt) => {
+      proxy = new RelaksRouteManagerProxy(manager);
     });
-    return component.start().then(() => {
-      expect(proxy).to.have.property('url', url);
-      expect(proxy).to.have.property('name', 'story-page');
-      expect(proxy).to.have.property('params').that.eql({ id: 7, paragraph: 4, language: 'en' });
-      expect(proxy).to.have.property('path', '/story/7');
-      expect(proxy).to.have.property('query').that.eql({ lang: 'en' });
-      expect(proxy).to.have.property('search').that.eql('?lang=en');
-      expect(proxy).to.have.property('hash', 'P4');
-    });
+    await manager.start();
+    expect(proxy).to.have.property('url', url);
+    expect(proxy).to.have.property('name', 'story-page');
+    expect(proxy).to.have.property('params').that.eql({ id: 7, paragraph: 4, language: 'en' });
+    expect(proxy).to.have.property('path', '/story/7');
+    expect(proxy).to.have.property('query').that.eql({ lang: 'en' });
+    expect(proxy).to.have.property('search').that.eql('?lang=en');
+    expect(proxy).to.have.property('hash', 'P4');
   })
 })

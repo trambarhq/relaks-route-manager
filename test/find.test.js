@@ -1,9 +1,10 @@
 import { expect } from 'chai';
+
 import RelaksRouteManager from '../index.mjs';
 
 describe('#find()', function() {
   it ('should generate a URL with query variables', function() {
-    var options = {
+    const options = {
       routes: {
         'search-page': {
           path: '/search',
@@ -15,15 +16,15 @@ describe('#find()', function() {
         }
       },
     };
-    var component = new RelaksRouteManager(options);
-    var url = component.find('search-page', {
+    const manager = new RelaksRouteManager(options);
+    const url = manager.find('search-page', {
       keywords: [ 'cat', 'dog' ],
       max: 8
     });
     expect(url).to.equal('/search?q=cat%20dog&m=8');
   })
   it ('should ignore base path of /', function() {
-    var options = {
+    const options = {
       basePath: '/',
       routes: {
         'search-page': {
@@ -36,15 +37,15 @@ describe('#find()', function() {
         }
       },
     };
-    var component = new RelaksRouteManager(options);
-    var url = component.find('search-page', {
+    const manager = new RelaksRouteManager(options);
+    const url = manager.find('search-page', {
       keywords: [ 'cat', 'dog' ],
       max: 8
     });
     expect(url).to.equal('/search?q=cat%20dog&m=8');
   })
   it ('should generate a URL with hash', function() {
-    var options = {
+    const options = {
       routes: {
         'news-page': {
           path: '/news/',
@@ -53,14 +54,14 @@ describe('#find()', function() {
         }
       },
     };
-    var component = new RelaksRouteManager(options);
-    var url = component.find('news-page', {
+    const manager = new RelaksRouteManager(options);
+    const url = manager.find('news-page', {
       storyID: 222,
     });
     expect(url).to.equal('/news/#S222');
   })
   it ('should prepend path with base path', function() {
-    var options = {
+    const options = {
       routes: {
         'story-page': {
           path: '/story/${id}',
@@ -69,12 +70,12 @@ describe('#find()', function() {
       },
       basePath: '/forum'
     };
-    var component = new RelaksRouteManager(options);
-    var url = component.find('story-page', { id: 747 });
+    const manager = new RelaksRouteManager(options);
+    const url = manager.find('story-page', { id: 747 });
     expect(url).to.equal('/forum/story/747');
   })
   it ('should produce a hash-only URL when fallback is used', function() {
-    var options = {
+    const options = {
       useHashFallback: true,
       routes: {
         'story-page': {
@@ -83,15 +84,15 @@ describe('#find()', function() {
         }
       },
     };
-    var component = new RelaksRouteManager(options);
-    var url = component.find('story-page', { id: 787 });
+    const manager = new RelaksRouteManager(options);
+    const url = manager.find('story-page', { id: 787 });
     expect(url).to.equal('#/story/787');
   })
-  it ('should apply context created by rewrite from call to change()', function() {
-    var r1 = {
+  it ('should apply context created by rewrite from call to change()', async function() {
+    const r1 = {
       from: function(urlParts, context) {
-        var re = /^\/(https?)\/(.*?)(\/|$)/;
-        var m = re.exec(urlParts.path);
+        const re = /^\/(https?)\/(.*?)(\/|$)/;
+        const m = re.exec(urlParts.path);
         if (m) {
           context.protocol = m[1];
           context.host = m[2];
@@ -104,7 +105,7 @@ describe('#find()', function() {
         }
       },
     };
-    var options = {
+    const options = {
       routes: {
         'story-page': {
           path: '/story/${id}',
@@ -113,17 +114,16 @@ describe('#find()', function() {
       },
       rewrites: [ r1 ]
     };
-    var component = new RelaksRouteManager(options);
-    return component.change('/https/example.net/story/5').then(() => {
-      var url = component.find('story-page', { id: 747 });
-      expect(url).to.equal('/https/example.net/story/747');
-    });
+    const manager = new RelaksRouteManager(options);
+    await manager.change('/https/example.net/story/5');
+    const url = manager.find('story-page', { id: 747 });
+    expect(url).to.equal('/https/example.net/story/747');
   })
-  it ('should prepend base path before rewrite occurs', function() {
-    var r1 = {
+  it ('should prepend base path before rewrite occurs', async function() {
+    const r1 = {
       from: function(urlParts, context) {
-        var re = /^\/(https?)\/(.*?)(\/|$)/;
-        var m = re.exec(urlParts.path);
+        const re = /^\/(https?)\/(.*?)(\/|$)/;
+        const m = re.exec(urlParts.path);
         if (m) {
           context.protocol = m[1];
           context.host = m[2];
@@ -136,7 +136,7 @@ describe('#find()', function() {
         }
       },
     };
-    var options = {
+    const options = {
       routes: {
         'story-page': {
           path: '/story/${id}',
@@ -146,14 +146,13 @@ describe('#find()', function() {
       rewrites: [ r1 ],
       basePath: '/forum'
     };
-    var component = new RelaksRouteManager(options);
-    return component.change('/forum/https/example.net/story/5').then(() => {
-      var url = component.find('story-page', { id: 747 });
-      expect(url).to.equal('/forum/https/example.net/story/747');
-    });
+    const manager = new RelaksRouteManager(options);
+    await manager.change('/forum/https/example.net/story/5');
+    const url = manager.find('story-page', { id: 747 });
+    expect(url).to.equal('/forum/https/example.net/story/747');
   })
   it ('should throw where there is no route by that name', function() {
-    var options = {
+    const options = {
       routes: {
         'story-page': {
           path: '/story/${id}',
@@ -161,13 +160,16 @@ describe('#find()', function() {
         }
       },
     };
-    var component = new RelaksRouteManager(options);
-    expect(() => {
-      var url = component.find('stroy-page', { id: 747 });
-    }).to.throw(Error).that.has.property('status', 500);
+    const manager = new RelaksRouteManager(options);
+    try {
+      const url = manager.find('stroy-page', { id: 747 });
+      expect.fail();
+    } catch (err) {
+      expect(err).to.have.property('status', 500);
+    }
   })
   it ('should generate a URL for a route with custom path matching', function() {
-    var options = {
+    const options = {
       routes: {
         'special-page': {
           path: {
@@ -178,36 +180,36 @@ describe('#find()', function() {
         },
       }
     };
-    var component = new RelaksRouteManager(options);
-    var url = component.find('special-page', { path: 'something/nice/' });
+    const manager = new RelaksRouteManager(options);
+    const url = manager.find('special-page', { path: 'something/nice/' });
     expect(url).to.equal('/special/something/nice/');
   })
   it ('should return undefined when a route has a wildcard path', function() {
-    var options = {
+    const options = {
       routes: {
         'catch-all-page': {
           path: '*',
         },
       }
     };
-    var component = new RelaksRouteManager(options);
-    var url = component.find('catch-all-page', {});
+    const manager = new RelaksRouteManager(options);
+    const url = manager.find('catch-all-page', {});
     expect(url).to.equal(undefined);
   })
   it ('should return undefined when a route does have a path', function() {
-    var options = {
+    const options = {
       routes: {
         'path-less-page': {
         },
       }
     };
-    var component = new RelaksRouteManager(options);
-    var url = component.find('path-less-page', {});
+    const manager = new RelaksRouteManager(options);
+    const url = manager.find('path-less-page', {});
     expect(url).to.equal(undefined);
   })
 })
 
-var WordList = {
+const WordList = {
   from: function(value) {
     return value.split(/\s+/g);
   },

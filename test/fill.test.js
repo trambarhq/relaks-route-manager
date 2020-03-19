@@ -1,9 +1,10 @@
 import { expect } from 'chai';
+
 import RelaksRouteManager from '../index.mjs';
 
 describe('#fill()', function() {
   it ('should fill path template with parameters', function() {
-    var options = {
+    const options = {
       routes: {
         'story-page': {
           path: '/story/${id}',
@@ -11,12 +12,12 @@ describe('#fill()', function() {
         }
       },
     };
-    var component = new RelaksRouteManager(options);
-    var urlParts = component.fill('story-page', { id: 747 });
+    const manager = new RelaksRouteManager(options);
+    const urlParts = manager.fill('story-page', { id: 747 });
     expect(urlParts).to.have.property('path').that.equals('/story/747');
   })
   it ('should fill query templates with parameters', function() {
-    var options = {
+    const options = {
       routes: {
         'search-page': {
           path: '/search',
@@ -28,8 +29,8 @@ describe('#fill()', function() {
         }
       },
     };
-    var component = new RelaksRouteManager(options);
-    var urlParts = component.fill('search-page', {
+    const manager = new RelaksRouteManager(options);
+    const urlParts = manager.fill('search-page', {
       keywords: [ 'cat', 'dog' ],
       max: 8
     });
@@ -40,7 +41,7 @@ describe('#fill()', function() {
     });
   })
   it ('should omit missing variable', function() {
-    var options = {
+    const options = {
       routes: {
         'search-page': {
           path: '/search',
@@ -52,8 +53,8 @@ describe('#fill()', function() {
         }
       },
     };
-    var component = new RelaksRouteManager(options);
-    var urlParts = component.fill('search-page', {
+    const manager = new RelaksRouteManager(options);
+    const urlParts = manager.fill('search-page', {
       keywords: [ 'cat', 'dog' ],
     });
     expect(urlParts).to.have.property('path').that.equals('/search');
@@ -62,7 +63,7 @@ describe('#fill()', function() {
     });
   })
   it ('should place empty string in query', function() {
-    var options = {
+    const options = {
       routes: {
         'search-page': {
           path: '/search',
@@ -74,8 +75,8 @@ describe('#fill()', function() {
         }
       },
     };
-    var component = new RelaksRouteManager(options);
-    var urlParts = component.fill('search-page', {
+    const manager = new RelaksRouteManager(options);
+    const urlParts = manager.fill('search-page', {
       search: '',
       max: 8
     });
@@ -86,7 +87,7 @@ describe('#fill()', function() {
     });
   })
   it ('should place empty string in query when number is NaN', function() {
-    var options = {
+    const options = {
       routes: {
         'search-page': {
           path: '/search',
@@ -98,8 +99,8 @@ describe('#fill()', function() {
         }
       },
     };
-    var component = new RelaksRouteManager(options);
-    var urlParts = component.fill('search-page', {
+    const manager = new RelaksRouteManager(options);
+    const urlParts = manager.fill('search-page', {
       search: '',
       max: NaN
     });
@@ -112,7 +113,7 @@ describe('#fill()', function() {
 
 })
 
-var WordList = {
+const WordList = {
   from: function(value) {
     return value.split(/\s+/g);
   },

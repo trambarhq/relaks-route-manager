@@ -1,12 +1,13 @@
 import { expect } from 'chai';
+
 import RelaksRouteManager from '../index.mjs';
 
 describe('#rewrite()', function() {
   it ('should rewrite the URL', function() {
-    var r1 = {
+    const r1 = {
       from: function(urlParts, context) {
-        var re = /^\/(https?)\/(.*?)(\/|$)/;
-        var m = re.exec(urlParts.path);
+        const re = /^\/(https?)\/(.*?)(\/|$)/;
+        const m = re.exec(urlParts.path);
         if (m) {
           context.protocol = m[1];
           context.host = m[2];
@@ -14,98 +15,98 @@ describe('#rewrite()', function() {
         }
       }
     };
-    var options = {
+    const options = {
       routes: {},
       rewrites: [ r1 ]
     };
-    var component = new RelaksRouteManager(options);
-    var urlParts = {
+    const manager = new RelaksRouteManager(options);
+    const urlParts = {
       path: '/https/example.net/users',
       query: {},
       hash: ''
     };
-    var context = {};
-    component.rewrite('from', urlParts, context);
+    const context = {};
+    manager.rewrite('from', urlParts, context);
     expect(urlParts.path).to.equal('/users');
     expect(context.protocol).to.equal('https');
     expect(context.host).to.equal('example.net');
   })
   it ('should rewrite the URL from other direction', function() {
-    var r1 = {
+    const r1 = {
       to: function(urlParts, context) {
         if (context.protocol && context.host) {
           urlParts.path = `/${context.protocol}/${context.host}${urlParts.path}`;
         }
       }
     };
-    var options = {
+    const options = {
       routes: {},
       rewrites: [ r1 ]
     };
-    var component = new RelaksRouteManager(options);
-    var urlParts = {
+    const manager = new RelaksRouteManager(options);
+    const urlParts = {
       path: '/users',
       query: {},
       hash: ''
     };
-    var context = {
+    const context = {
       protocol: 'https',
       host: 'example.net'
     };
-    component.rewrite('to', urlParts, context);
+    manager.rewrite('to', urlParts, context);
     expect(urlParts.path).to.equal('/https/example.net/users');
   })
   it ('should stop rewriting when a function returns false', function() {
-    var r1 = {
+    let canceled;
+    const r1 = {
       from: function() {
         canceled = true;
         return false;
       }
     };
-    var r2 = {
+    const r2 = {
       from: function() {
         canceled = false;
       }
     };
-    var canceled;
-    var options = {
+    const options = {
       routes: {},
       rewrites: [ r1, r2 ]
     };
-    var component = new RelaksRouteManager(options);
-    var urlParts = {
+    const manager = new RelaksRouteManager(options);
+    const urlParts = {
       path: '/users',
       query: {},
       hash: ''
     };
-    var context = {};
-    component.rewrite('from', urlParts, context);
+    const context = {};
+    manager.rewrite('from', urlParts, context);
     expect(canceled).to.be.true;
   })
   it ('should rewrite in inverse order when direction is "to"', function() {
-    var r1 = {
+    const r1 = {
       to: function(direction) {
         called.push(1);
       }
     };
-    var r2 = {
+    const r2 = {
       to: function(direction) {
         called.push(2);
       }
     };
-    var called = [];
-    var options = {
+    const called = [];
+    const options = {
       routes: {},
       rewrites: [ r1, r2 ]
     };
-    var component = new RelaksRouteManager(options);
-    var urlParts = {
+    const manager = new RelaksRouteManager(options);
+    const urlParts = {
       path: '/users',
       query: {},
       hash: ''
     };
-    var context = {};
-    component.rewrite('to', urlParts, context);
+    const context = {};
+    manager.rewrite('to', urlParts, context);
     expect(called).to.deep.equal([ 2, 1 ]);
   })
 })
