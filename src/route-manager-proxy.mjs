@@ -2,6 +2,7 @@ class RelaksRouteManagerProxy {
   constructor(routeManager) {
     this.routeManager = routeManager;
     this.name = routeManager.name;
+    this.route = routeManager.route;
     this.params = routeManager.params;
     this.context = routeManager.context;
     this.history = routeManager.history;

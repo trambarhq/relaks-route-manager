@@ -69,7 +69,7 @@ function _setPrototypeOf(o, p) {
   return _setPrototypeOf(o, p);
 }
 
-function isNativeReflectConstruct() {
+function _isNativeReflectConstruct() {
   if (typeof Reflect === "undefined" || !Reflect.construct) return false;
   if (Reflect.construct.sham) return false;
   if (typeof Proxy === "function") return true;
@@ -83,7 +83,7 @@ function isNativeReflectConstruct() {
 }
 
 function _construct(Parent, args, Class) {
-  if (isNativeReflectConstruct()) {
+  if (_isNativeReflectConstruct()) {
     _construct = Reflect.construct;
   } else {
     _construct = function _construct(Parent, args, Class) {
@@ -153,8 +153,27 @@ function _possibleConstructorReturn(self, call) {
   return _assertThisInitialized(self);
 }
 
+function _createSuper(Derived) {
+  var hasNativeReflectConstruct = _isNativeReflectConstruct();
+
+  return function _createSuperInternal() {
+    var Super = _getPrototypeOf(Derived),
+        result;
+
+    if (hasNativeReflectConstruct) {
+      var NewTarget = _getPrototypeOf(this).constructor;
+
+      result = Reflect.construct(Super, arguments, NewTarget);
+    } else {
+      result = Super.apply(this, arguments);
+    }
+
+    return _possibleConstructorReturn(this, result);
+  };
+}
+
 function _slicedToArray(arr, i) {
-  return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _nonIterableRest();
+  return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _unsupportedIterableToArray(arr, i) || _nonIterableRest();
 }
 
 function _arrayWithHoles(arr) {
@@ -162,10 +181,7 @@ function _arrayWithHoles(arr) {
 }
 
 function _iterableToArrayLimit(arr, i) {
-  if (!(Symbol.iterator in Object(arr) || Object.prototype.toString.call(arr) === "[object Arguments]")) {
-    return;
-  }
-
+  if (typeof Symbol === "undefined" || !(Symbol.iterator in Object(arr))) return;
   var _arr = [];
   var _n = true;
   var _d = false;
@@ -191,17 +207,93 @@ function _iterableToArrayLimit(arr, i) {
   return _arr;
 }
 
+function _unsupportedIterableToArray(o, minLen) {
+  if (!o) return;
+  if (typeof o === "string") return _arrayLikeToArray(o, minLen);
+  var n = Object.prototype.toString.call(o).slice(8, -1);
+  if (n === "Object" && o.constructor) n = o.constructor.name;
+  if (n === "Map" || n === "Set") return Array.from(o);
+  if (n === "Arguments" || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(n)) return _arrayLikeToArray(o, minLen);
+}
+
+function _arrayLikeToArray(arr, len) {
+  if (len == null || len > arr.length) len = arr.length;
+
+  for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
+
+  return arr2;
+}
+
 function _nonIterableRest() {
-  throw new TypeError("Invalid attempt to destructure non-iterable instance");
+  throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+
+function _createForOfIteratorHelper(o, allowArrayLike) {
+  var it;
+
+  if (typeof Symbol === "undefined" || o[Symbol.iterator] == null) {
+    if (Array.isArray(o) || (it = _unsupportedIterableToArray(o)) || allowArrayLike && o && typeof o.length === "number") {
+      if (it) o = it;
+      var i = 0;
+
+      var F = function () {};
+
+      return {
+        s: F,
+        n: function () {
+          if (i >= o.length) return {
+            done: true
+          };
+          return {
+            done: false,
+            value: o[i++]
+          };
+        },
+        e: function (e) {
+          throw e;
+        },
+        f: F
+      };
+    }
+
+    throw new TypeError("Invalid attempt to iterate non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+  }
+
+  var normalCompletion = true,
+      didErr = false,
+      err;
+  return {
+    s: function () {
+      it = o[Symbol.iterator]();
+    },
+    n: function () {
+      var step = it.next();
+      normalCompletion = step.done;
+      return step;
+    },
+    e: function (e) {
+      didErr = true;
+      err = e;
+    },
+    f: function () {
+      try {
+        if (!normalCompletion && it.return != null) it.return();
+      } finally {
+        if (didErr) throw err;
+      }
+    }
+  };
 }
 
 var RelaksRouteManagerEvent = /*#__PURE__*/function (_GenericEvent) {
   _inherits(RelaksRouteManagerEvent, _GenericEvent);
 
+  var _super = _createSuper(RelaksRouteManagerEvent);
+
   function RelaksRouteManagerEvent() {
     _classCallCheck(this, RelaksRouteManagerEvent);
 
-    return _possibleConstructorReturn(this, _getPrototypeOf(RelaksRouteManagerEvent).apply(this, arguments));
+    return _super.apply(this, arguments);
   }
 
   return RelaksRouteManagerEvent;
@@ -210,12 +302,14 @@ var RelaksRouteManagerEvent = /*#__PURE__*/function (_GenericEvent) {
 var RelaksRouteManagerError = /*#__PURE__*/function (_Error) {
   _inherits(RelaksRouteManagerError, _Error);
 
+  var _super = _createSuper(RelaksRouteManagerError);
+
   function RelaksRouteManagerError(status, message) {
     var _this;
 
     _classCallCheck(this, RelaksRouteManagerError);
 
-    _this = _possibleConstructorReturn(this, _getPrototypeOf(RelaksRouteManagerError).call(this, message));
+    _this = _super.call(this, message);
     _this.status = status;
     return _this;
   }
@@ -236,12 +330,14 @@ var defaultOptions = {
 var RelaksRouteManager = /*#__PURE__*/function (_EventEmitter) {
   _inherits(RelaksRouteManager, _EventEmitter);
 
+  var _super = _createSuper(RelaksRouteManager);
+
   function RelaksRouteManager(options) {
     var _this;
 
     _classCallCheck(this, RelaksRouteManager);
 
-    _this = _possibleConstructorReturn(this, _getPrototypeOf(RelaksRouteManager).call(this));
+    _this = _super.call(this);
     _this.active = false;
     _this.preloaded = false;
     _this.options = {};
@@ -444,28 +540,18 @@ var RelaksRouteManager = /*#__PURE__*/function (_EventEmitter) {
   }, {
     key: "addRewrites",
     value: function addRewrites(rewrites) {
-      var _iteratorNormalCompletion = true;
-      var _didIteratorError = false;
-      var _iteratorError = undefined;
+      var _iterator = _createForOfIteratorHelper(rewrites),
+          _step;
 
       try {
-        for (var _iterator = rewrites[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+        for (_iterator.s(); !(_step = _iterator.n()).done;) {
           var rewrite = _step.value;
           this.rewrites.push(rewrite);
         }
       } catch (err) {
-        _didIteratorError = true;
-        _iteratorError = err;
+        _iterator.e(err);
       } finally {
-        try {
-          if (!_iteratorNormalCompletion && _iterator["return"] != null) {
-            _iterator["return"]();
-          }
-        } finally {
-          if (_didIteratorError) {
-            throw _iteratorError;
-          }
-        }
+        _iterator.f();
       }
     }
     /**
@@ -477,12 +563,11 @@ var RelaksRouteManager = /*#__PURE__*/function (_EventEmitter) {
   }, {
     key: "removeRewrites",
     value: function removeRewrites(rewrites) {
-      var _iteratorNormalCompletion2 = true;
-      var _didIteratorError2 = false;
-      var _iteratorError2 = undefined;
+      var _iterator2 = _createForOfIteratorHelper(rewrites),
+          _step2;
 
       try {
-        for (var _iterator2 = rewrites[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
+        for (_iterator2.s(); !(_step2 = _iterator2.n()).done;) {
           var rewrite = _step2.value;
           var index = this.rewrites.indexOf(rewrite);
 
@@ -491,18 +576,9 @@ var RelaksRouteManager = /*#__PURE__*/function (_EventEmitter) {
           }
         }
       } catch (err) {
-        _didIteratorError2 = true;
-        _iteratorError2 = err;
+        _iterator2.e(err);
       } finally {
-        try {
-          if (!_iteratorNormalCompletion2 && _iterator2["return"] != null) {
-            _iterator2["return"]();
-          }
-        } finally {
-          if (_didIteratorError2) {
-            throw _iteratorError2;
-          }
-        }
+        _iterator2.f();
       }
     }
     /**
@@ -676,8 +752,9 @@ var RelaksRouteManager = /*#__PURE__*/function (_EventEmitter) {
       var _this5 = this;
 
       if (this.history.length <= 1) {
-        var err = new RelaksRouteManagerError(400, 'Going beyond starting page');
-        return Promise.reject(err);
+        var _err = new RelaksRouteManagerError(400, 'Going beyond starting page');
+
+        return Promise.reject(_err);
       }
 
       if (this.options.trackLocation) {
@@ -1412,28 +1489,18 @@ function getURLTemplateVariables(template) {
   var list = [];
 
   if (matches) {
-    var _iteratorNormalCompletion3 = true;
-    var _didIteratorError3 = false;
-    var _iteratorError3 = undefined;
+    var _iterator3 = _createForOfIteratorHelper(matches),
+        _step3;
 
     try {
-      for (var _iterator3 = matches[Symbol.iterator](), _step3; !(_iteratorNormalCompletion3 = (_step3 = _iterator3.next()).done); _iteratorNormalCompletion3 = true) {
+      for (_iterator3.s(); !(_step3 = _iterator3.n()).done;) {
         var match = _step3.value;
         list.push(match.substr(2, match.length - 3));
       }
     } catch (err) {
-      _didIteratorError3 = true;
-      _iteratorError3 = err;
+      _iterator3.e(err);
     } finally {
-      try {
-        if (!_iteratorNormalCompletion3 && _iterator3["return"] != null) {
-          _iterator3["return"]();
-        }
-      } finally {
-        if (_didIteratorError3) {
-          throw _iteratorError3;
-        }
-      }
+      _iterator3.f();
     }
   }
 
@@ -1463,12 +1530,12 @@ function matchTemplate(urlPart, template, types, params, isPath) {
 
     var variables = getURLTemplateVariables(template);
     var values = {};
-    var _iteratorNormalCompletion4 = true;
-    var _didIteratorError4 = false;
-    var _iteratorError4 = undefined;
+
+    var _iterator4 = _createForOfIteratorHelper(variables.entries()),
+        _step4;
 
     try {
-      for (var _iterator4 = variables.entries()[Symbol.iterator](), _step4; !(_iteratorNormalCompletion4 = (_step4 = _iterator4.next()).done); _iteratorNormalCompletion4 = true) {
+      for (_iterator4.s(); !(_step4 = _iterator4.n()).done;) {
         var _step4$value = _slicedToArray(_step4.value, 2),
             index = _step4$value[0],
             variable = _step4$value[1];
@@ -1485,18 +1552,9 @@ function matchTemplate(urlPart, template, types, params, isPath) {
         }
       }
     } catch (err) {
-      _didIteratorError4 = true;
-      _iteratorError4 = err;
+      _iterator4.e(err);
     } finally {
-      try {
-        if (!_iteratorNormalCompletion4 && _iterator4["return"] != null) {
-          _iterator4["return"]();
-        }
-      } finally {
-        if (_didIteratorError4) {
-          throw _iteratorError4;
-        }
-      }
+      _iterator4.f();
     }
 
     Object.assign(params, values);
@@ -1514,12 +1572,12 @@ function fillTemplate(template, types, params, always) {
   } else if (typeof template === 'string') {
     var variables = getURLTemplateVariables(template);
     var urlPath = template;
-    var _iteratorNormalCompletion5 = true;
-    var _didIteratorError5 = false;
-    var _iteratorError5 = undefined;
+
+    var _iterator5 = _createForOfIteratorHelper(variables),
+        _step5;
 
     try {
-      for (var _iterator5 = variables[Symbol.iterator](), _step5; !(_iteratorNormalCompletion5 = (_step5 = _iterator5.next()).done); _iteratorNormalCompletion5 = true) {
+      for (_iterator5.s(); !(_step5 = _iterator5.n()).done;) {
         var variable = _step5.value;
         var value = params[variable];
         var type = types ? types[variable] : String;
@@ -1532,18 +1590,9 @@ function fillTemplate(template, types, params, always) {
         }
       }
     } catch (err) {
-      _didIteratorError5 = true;
-      _iteratorError5 = err;
+      _iterator5.e(err);
     } finally {
-      try {
-        if (!_iteratorNormalCompletion5 && _iterator5["return"] != null) {
-          _iterator5["return"]();
-        }
-      } finally {
-        if (_didIteratorError5) {
-          throw _iteratorError5;
-        }
-      }
+      _iterator5.f();
     }
 
     return urlPath;
@@ -1593,12 +1642,12 @@ function parseQueryString(queryString) {
 
   if (queryString) {
     var pairs = queryString.split('&');
-    var _iteratorNormalCompletion6 = true;
-    var _didIteratorError6 = false;
-    var _iteratorError6 = undefined;
+
+    var _iterator6 = _createForOfIteratorHelper(pairs),
+        _step6;
 
     try {
-      for (var _iterator6 = pairs[Symbol.iterator](), _step6; !(_iteratorNormalCompletion6 = (_step6 = _iterator6.next()).done); _iteratorNormalCompletion6 = true) {
+      for (_iterator6.s(); !(_step6 = _iterator6.n()).done;) {
         var pair = _step6.value;
         var parts = pair.split('=');
         var name = decodeURIComponent(parts[0]);
@@ -1606,18 +1655,9 @@ function parseQueryString(queryString) {
         values[name] = value;
       }
     } catch (err) {
-      _didIteratorError6 = true;
-      _iteratorError6 = err;
+      _iterator6.e(err);
     } finally {
-      try {
-        if (!_iteratorNormalCompletion6 && _iterator6["return"] != null) {
-          _iterator6["return"]();
-        }
-      } finally {
-        if (_didIteratorError6) {
-          throw _iteratorError6;
-        }
-      }
+      _iterator6.f();
     }
   }
 
@@ -1663,6 +1703,7 @@ var RelaksRouteManagerProxy = /*#__PURE__*/function () {
 
     this.routeManager = routeManager;
     this.name = routeManager.name;
+    this.route = routeManager.route;
     this.params = routeManager.params;
     this.context = routeManager.context;
     this.history = routeManager.history;

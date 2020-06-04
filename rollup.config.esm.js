@@ -1,4 +1,4 @@
-const Babel = require('rollup-plugin-babel');
+import Babel from 'rollup-plugin-babel';
 
 module.exports = [
   'index',

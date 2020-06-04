@@ -1,5 +1,5 @@
-const Babel = require('rollup-plugin-babel');
-const Resolve = require('@rollup/plugin-node-resolve');
+import Babel from 'rollup-plugin-babel';
+import Resolve from '@rollup/plugin-node-resolve';
 
 module.exports = [
   'index',

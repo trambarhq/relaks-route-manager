@@ -25,48 +25,46 @@ npm --save-dev install relaks-route-manager
 ```javascript
 import RouteManager from 'relaks-route-manager';
 
-let options = {
-    basePath: '',
-    trackLinks: true,
-    trackLocation: true,
-    routes: routingTable,
-    rewrites: rewriteRules,
-    preloadingDelay: 2000,
-    useHashFallback: true,
-    reloadFaultyScript: true,
+const options = {
+  basePath: '',
+  trackLinks: true,
+  trackLocation: true,
+  routes: routingTable,
+  rewrites: rewriteRules,
+  preloadingDelay: 2000,
+  useHashFallback: true,
+  reloadFaultyScript: true,
 };
-let routeManager = new RouteManager(options);
+const routeManager = new RouteManager(options);
 routeManager.activate();
 await routeManager.start();
 ```
 
 ```javascript
+import React, { useMemo, useEffect } from 'react';
+import { useEventTime } from 'relaks';
+import { RouteManagerProxy } from 'relaks-route-manager';
+
 /* Root-level React component */
-class FrontEnd extends PureComponent {
-    constructor(props) {
-        super(props);
-        let { routeManager } = props;
-        this.state = {
-            route: new Route(routeManager);
-        }
-    }
+function FrontEnd(props) {
+  const { routeManager } = props;
+  const [ routeChanged, setRouteChanged ] = useEventTime();
+  const route = useMemo(() => {
+    return new RouteManagerProxy(routeManager);
+  }, [ routeManager, routeChanged ]);
 
-    componentDidMount() {
-        let { routeManager } = this.props;
-        routeManager.addEventListener('change', this.handleRouteChange);
+  useEffect(() => {
+    routeManager.addEventListener('change', setRouteChanged);
+    return () => {
+      routeManager.removeEventListener('change', setRouteChanged);
     }
+  }, [ routeManager ]);
 
-    /* ... */
-
-    handleRouteChange = (evt) => {
-        let { routeManager } = this.props;
-        let route = new Route(routeManager);
-        this.setState({ route });
-    }
+  ...
 }
 ```
 
-Components are expected to access functionalities of the route manager through a proxy object--`Route` in the sample code above. See the documentation of Relaks for an [explanation](https://github.com/trambarhq/relaks#proxy-objects). A [default implementation](https://github.com/trambarhq/relaks-route-manager/blob/master/proxy.js) is provided for reference purpose. It's recommended that you create your own.
+Components are expected to access functionalities of the route manager through a proxy object--`Route` in the sample code above. See the documentation of Relaks for an [explanation](https://github.com/trambarhq/relaks#proxy-objects). A [default implementation](https://github.com/trambarhq/relaks-route-manager/blob/master/proxy.js) is provided for reference purpose.
 
 ## Options
 
@@ -132,27 +130,27 @@ A hash table (i.e. an object) containing your app's routes. See [routing table](
 Here's a section of the routing table used in [one of the examples](https://github.com/trambarhq/relaks-starwars-example-sequel):
 
 ```javascript
-let routes = {
-    'welcome': {
-        path: '/',
-        load: async (match) => {
-            match.params.module = await import('pages/welcome-page' /* webpackChunkName: "welcome-page" */);
-        }
-    },
-    'film-list': {
-        path: '/films/',
-        load: async (match) => {
-            match.params.module = await import('pages/film-list' /* webpackChunkName: "film-list" */);
-        }
-    },
-    'film-summary': {
-        path: '/films/${id}/',
-        params: { id: Number },
-        load: async (match) => {
-            match.params.module = await import('pages/film-page' /* webpackChunkName: "film-page" */);
-        }
-    },
-    /* ... */
+const routes = {
+  'welcome': {
+    path: '/',
+    load: async (match) => {
+      match.params.module = await import('pages/welcome-page' /* webpackChunkName: "welcome-page" */);
+    }
+  },
+  'film-list': {
+    path: '/films/',
+    load: async (match) => {
+      match.params.module = await import('pages/film-list' /* webpackChunkName: "film-list" */);
+    }
+  },
+  'film-summary': {
+    path: '/films/${id}/',
+    params: { id: Number },
+    load: async (match) => {
+      match.params.module = await import('pages/film-page' /* webpackChunkName: "film-page" */);
+    }
+  },
+  /* ... */
 };
 ```
 
@@ -170,23 +168,23 @@ The following shows a route where parameters are extracted from all parts of a U
 
 ```javascript
 {
-    'dog-page': {
-        path: '/owners/${ownerName}/dogs/${dogName}',
-        query: {
-            f: '${friendly}'
-        },
-        hash: 'P${paragraphNumber}',
-        params: {
-            ownerName: String,
-            dogName: String,
-            friendly: Boolean,
-            paragraphNumber: Number,
-        },
-        load: async (match) => {
-            match.params.module = await import('pages/dog-page' /* webpackChunkName: "dog-page" */);
-        },
-        authentication: true,
-    }
+  'dog-page': {
+    path: '/owners/${ownerName}/dogs/${dogName}',
+    query: {
+      f: '${friendly}'
+    },
+    hash: 'P${paragraphNumber}',
+    params: {
+      ownerName: String,
+      dogName: String,
+      friendly: Boolean,
+      paragraphNumber: Number,
+    },
+    load: async (match) => {
+      match.params.module = await import('pages/dog-page' /* webpackChunkName: "dog-page" */);
+    },
+    authentication: true,
+  }
 }
 ```
 
@@ -194,15 +192,17 @@ A route is chosen when its `path` matches the URL. Parameters from `query` and `
 
 The route definition may contain custom fields. In the example above, we're specifying that our dog page requires authentication.
 
+
+
 ### Loading a route
 
 Once the route manager finds the correct entry for a route, it'll invoke its `load()` function. The function will receive an object containing `params` and `context`, as well as properties of the URL, such as `path` and `query`. If on-demand loading is employed, the function should initiate the code import and return a promise. The example above show how that's done using ES7 async/await syntax. It would look as follows if we write it in old-fashioned JavaScript:
 
 ```javascript
 load: function(match) {
-    return import('pages/dog-page' /* webpackChunkName: "dog-page" */).then(function(module) {
-        match.params.module = module;
-    });
+  return import('pages/dog-page' /* webpackChunkName: "dog-page" */).then(function(module) {
+    match.params.module = module;
+  });
 },
 ```
 
@@ -212,8 +212,8 @@ The parameter `module` is not special. It's simply a name used by the example ap
 
 ```javascript
 load: async (match) => {
-    match.params.page = await import('pages/television' /* webpackChunkName: "television-page" */);
-    match.params.nav = await import('nav/electronics' /* webpackChunkName: "electronics-nav" */);
+  match.params.page = await import('pages/television' /* webpackChunkName: "television-page" */);
+  match.params.nav = await import('nav/electronics' /* webpackChunkName: "electronics-nav" */);
 },
 ```
 
@@ -223,18 +223,18 @@ In lieu of a string pattern, you can supply an object containing two functions: 
 
 ```javascript
 class WikiPath {
-    static from(path, params) {
-        let regExp = /^\/wiki\/(.*)/;
-        let match = regExp.exec(path);
-        if (match) {
-            params.pagePath = match[1];
-            return true;
-        }
+  static from(path, params) {
+    const regExp = /^\/wiki\/(.*)/;
+    const match = regExp.exec(path);
+    if (match) {
+      params.pagePath = match[1];
+      return true;
     }
+  }
 
-    static to(params) {
-        return `/wiki/${params.pagePath}`;
-    }
+  static to(params) {
+    return `/wiki/${params.pagePath}`;
+  }
 }
 ```
 
@@ -246,19 +246,19 @@ You can perform more sophisticated typecasting by placing an object with `from()
 
 ```javascript
 class NumberArray {
-    static from(s) {
-        if (s) {
-            return s.split(',').map((s) => {
-                return parseInt(s);
-            });
-        } else {
-            return [];
-        }
+  static from(s) {
+    if (s) {
+      return s.split(',').map((s) => {
+        return parseInt(s);
+      });
+    } else {
+      return [];
     }
+  }
 
-    static to(a) {
-        return a.join(',');
-    }
+  static to(a) {
+    return a.join(',');
+  }
 }
 ```
 
@@ -270,31 +270,31 @@ A rewrite rule is an object containing two functions: `from()` and `to()`. The r
 
 ```javascript
 class ExtractCommitID {
-    static from(urlParts, context) {
-        let regExp = /^\/@([^\/]+)/;
-        let match = regExp.exec(urlParts.path);
-        if (match) {
-            // e.g. https://example.net/@master:/news/
-            let parts = match[1].split(':');
-            context.branch = parts[0];
-            context.commit = parts[1] || 'HEAD';
-            urlParts.path = urlParts.path.substr(match[0].length) || '/';
-        } else {
-            // e.g. https://example.net/news/
-            context.branch = 'master';
-            context.commit = 'HEAD';
-        }
+  static from(urlParts, context) {
+    const regExp = /^\/@([^\/]+)/;
+    const match = regExp.exec(urlParts.path);
+    if (match) {
+      // e.g. https://example.net/@master:/news/
+      const parts = match[1].split(':');
+      context.branch = parts[0];
+      context.commit = parts[1] || 'HEAD';
+      urlParts.path = urlParts.path.substr(match[0].length) || '/';
+    } else {
+      // e.g. https://example.net/news/
+      context.branch = 'master';
+      context.commit = 'HEAD';
     }
+  }
 
-    static to(urlParts, context) {
-        if (context.branch !== 'master' || context.commit !== 'HEAD') {
-            let parts = [ context.branch ];
-            if (context.commit !== 'HEAD') {
-                parts.push(context.commit);
-            }
-            urlParts.path = `/@` + parts.join(':') + urlParts.path;
-        }
+  static to(urlParts, context) {
+    if (context.branch !== 'master' || context.commit !== 'HEAD') {
+      const parts = [ context.branch ];
+      if (context.commit !== 'HEAD') {
+        parts.push(context.commit);
+      }
+      urlParts.path = `/@` + parts.join(':') + urlParts.path;
     }
+  }
 }
 ```
 
