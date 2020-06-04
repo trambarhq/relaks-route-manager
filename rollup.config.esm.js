@@ -1,6 +1,6 @@
 import Babel from 'rollup-plugin-babel';
 
-module.exports = [
+export default [
   'index',
 ].map((name) => {
   return {

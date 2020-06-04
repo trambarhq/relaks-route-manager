@@ -1,7 +1,7 @@
 import Babel from 'rollup-plugin-babel';
 import Resolve from '@rollup/plugin-node-resolve';
 
-module.exports = [
+export default [
   'index',
 ].map((name) => {
   return {
