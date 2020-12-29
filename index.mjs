@@ -653,6 +653,7 @@ var RelaksRouteManager = /*#__PURE__*/function (_EventEmitter) {
      *
      * @param  {String} name
      * @param  {Object} params
+     * @param  {Object} newContext
      * @param  {Boolean} keepURL
      *
      * @return {Promise<Boolean>}
@@ -660,7 +661,7 @@ var RelaksRouteManager = /*#__PURE__*/function (_EventEmitter) {
 
   }, {
     key: "substitute",
-    value: function substitute(name, params, keepURL) {
+    value: function substitute(name, params, newContext, keepURL) {
       var _this3 = this;
 
       if (process.env.NODE_ENV !== 'production') {
@@ -669,7 +670,7 @@ var RelaksRouteManager = /*#__PURE__*/function (_EventEmitter) {
         }
       }
 
-      var match = this.generate(name, params);
+      var match = this.generate(name, params, newContext);
       var entry = this.history[this.history.length - 1];
       var time = entry ? entry.time : getTimeStamp();
 
@@ -737,6 +738,14 @@ var RelaksRouteManager = /*#__PURE__*/function (_EventEmitter) {
   }, {
     key: "find",
     value: function find(name, params, newContext) {
+      if (name == undefined) {
+        name = this.name;
+      }
+
+      if (params == undefined) {
+        params = this.params;
+      }
+
       var match = this.generate(name, params, newContext);
       return this.applyFallback(match.url);
     }
@@ -965,8 +974,8 @@ var RelaksRouteManager = /*#__PURE__*/function (_EventEmitter) {
       var confirmationEvent = new RelaksRouteManagerEvent('beforechange', this, match);
       var subEntry;
 
-      confirmationEvent.substitute = function (name, params, keepURL) {
-        var sub = _this6.generate(name, params, match.context);
+      confirmationEvent.substitute = function (name, params, newContext, keepURL) {
+        var sub = _this6.generate(name, params, Object.assign({}, match.context, newContext));
 
         if (sub.url === undefined || keepURL) {
           // use URL of the intended route
@@ -1712,22 +1721,28 @@ var RelaksRouteManagerProxy = /*#__PURE__*/function () {
     this.query = routeManager.query;
     this.search = routeManager.search;
     this.hash = routeManager.hash;
+
+    for (var name in this.route) {
+      if (!this.hasOwnProperty(name)) {
+        this[name] = this.route[name];
+      }
+    }
   }
 
   _createClass(RelaksRouteManagerProxy, [{
     key: "push",
-    value: function push(name, params) {
-      return this.routeManager.push(name, params);
+    value: function push(name, params, context) {
+      return this.routeManager.push(name, params, context);
     }
   }, {
     key: "replace",
-    value: function replace(name, params) {
-      return this.routeManager.replace(name, params);
+    value: function replace(name, params, context) {
+      return this.routeManager.replace(name, params, context);
     }
   }, {
     key: "substitute",
-    value: function substitute(name, params) {
-      return this.routeManager.substitute(name, params);
+    value: function substitute(name, params, context) {
+      return this.routeManager.substitute(name, params, context);
     }
   }, {
     key: "restore",
@@ -1741,8 +1756,8 @@ var RelaksRouteManagerProxy = /*#__PURE__*/function () {
     }
   }, {
     key: "find",
-    value: function find(name, params) {
-      return this.routeManager.find(name, params);
+    value: function find(name, params, context) {
+      return this.routeManager.find(name, params, context);
     }
   }]);
 

@@ -270,17 +270,18 @@ class RelaksRouteManager extends EventEmitter {
    *
    * @param  {String} name
    * @param  {Object} params
+   * @param  {Object} newContext
    * @param  {Boolean} keepURL
    *
    * @return {Promise<Boolean>}
    */
-  substitute(name, params, keepURL) {
+  substitute(name, params, newContext, keepURL) {
     if (process.env.NODE_ENV !== 'production') {
       if (this.insideBeforeChangeHandler) {
         console.warn('Calling substitute() inside a beforechange handler. Perhaps you mean to call evt.substitute()?')
       }
     }
-    const match = this.generate(name, params);
+    const match = this.generate(name, params, newContext);
     const entry = this.history[this.history.length - 1];
     const time = (entry) ? entry.time : getTimeStamp();
     if ((match.url === undefined || keepURL) && entry) {
@@ -329,6 +330,12 @@ class RelaksRouteManager extends EventEmitter {
    * @return {String|undefined}
    */
   find(name, params, newContext) {
+    if (name == undefined) {
+      name = this.name;
+    }
+    if (params == undefined) {
+      params = this.params;
+    }
     const match = this.generate(name, params, newContext);
     return this.applyFallback(match.url);
   }
@@ -501,8 +508,8 @@ class RelaksRouteManager extends EventEmitter {
   apply(match, time, sync, replace) {
     const confirmationEvent = new RouteManagerEvent('beforechange', this, match);
     let subEntry;
-    confirmationEvent.substitute = (name, params, keepURL) => {
-      const sub = this.generate(name, params, match.context);
+    confirmationEvent.substitute = (name, params, newContext, keepURL) => {
+      const sub = this.generate(name, params, Object.assign({}, match.context, newContext));
       if (sub.url === undefined || keepURL) {
         // use URL of the intended route
         sub.url = match.url;

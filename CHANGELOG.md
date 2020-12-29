@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2.0.9
+
+* Added context to substitute()
+* Added context to proxy methods
+* Copying properties from route to proxy
+* Allowing name and params to be undefined when calling find()
+
 ## 2.0.6
 
 * Fixed regression

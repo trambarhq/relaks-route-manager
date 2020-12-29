@@ -12,6 +12,7 @@ describe('RelaksRouteManagerProxy', function() {
           path: '/news/',
           params: { storyID: Number },
           hash: 'S${storyID}',
+          component: {},
         },
         'story-page': {
           path: '/story/${id}/',
@@ -20,6 +21,7 @@ describe('RelaksRouteManagerProxy', function() {
             lang: '${language}'
           },
           hash: 'P${paragraph}',
+          component: {},
         },
       },
       basePath: '/forum'
@@ -39,5 +41,6 @@ describe('RelaksRouteManagerProxy', function() {
     expect(proxy).to.have.property('query').that.eql({ lang: 'en' });
     expect(proxy).to.have.property('search').that.eql('?lang=en');
     expect(proxy).to.have.property('hash', 'P4');
+    expect(proxy).to.have.property('component').that.is.an('object');
   })
 })

@@ -1,9 +1,7 @@
 import Babel from 'rollup-plugin-babel';
 import Resolve from '@rollup/plugin-node-resolve';
 
-export default [
-  'index',
-].map((name) => {
+export default [ 'index' ].map((name) => {
   return {
     input: `src/${name}.mjs`,
     output: {

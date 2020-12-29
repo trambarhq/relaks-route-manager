@@ -184,6 +184,22 @@ describe('#find()', function() {
     const url = manager.find('special-page', { path: 'something/nice/' });
     expect(url).to.equal('/special/something/nice/');
   })
+  it ('should use current name when no name is given', async function() {
+    const options = {
+      useHashFallback: true,
+      routes: {
+        'story-page': {
+          path: '/story/${id}',
+          params: { id: Number },
+        }
+      },
+    };
+    const manager = new RelaksRouteManager(options);
+    location.hash = '#/story/5';
+    await manager.start();
+    const url = manager.find(undefined, { id: 6 });
+    expect(url).to.equal('#/story/6');
+  })
   it ('should return undefined when a route has a wildcard path', function() {
     const options = {
       routes: {
@@ -196,7 +212,7 @@ describe('#find()', function() {
     const url = manager.find('catch-all-page', {});
     expect(url).to.equal(undefined);
   })
-  it ('should return undefined when a route does have a path', function() {
+  it ('should return undefined when a route does not have a path', function() {
     const options = {
       routes: {
         'path-less-page': {

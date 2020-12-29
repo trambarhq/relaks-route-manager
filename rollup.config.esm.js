@@ -1,8 +1,6 @@
 import Babel from 'rollup-plugin-babel';
 
-export default [
-  'index',
-].map((name) => {
+export default [ 'index' ].map((name) => {
   return {
     input: `src/${name}.mjs`,
     output: {
